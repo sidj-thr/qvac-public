@@ -1,0 +1,72 @@
+{
+  "name": "@qvac/img-stable-diffusion-cpp",
+  "version": "0.1.0",
+  "description": "stable-diffusion.cpp addon for qvac image/video generation",
+  "addon": true,
+  "scripts": {
+    "build": "bare-make generate && bare-make build && bare-make install",
+    "build:pack": "mkdir -p dist && npm pack --pack-destination dist",
+    "mobile:copy-prebuilds": "cp -r prebuilds/android-arm64 prebuilds/android-ia32 || echo 'Warning: Failed to copy sd prebuilds to android-ia32'; cp -r prebuilds/android-arm64 prebuilds/android-arm || echo 'Warning: Failed to copy sd prebuilds to android-arm'; cp -r prebuilds/android-arm64 prebuilds/android-x64 || echo 'Warning: Failed to copy sd prebuilds to android-x64'; cp -r prebuilds/ios-arm64 prebuilds/ios-arm64-simulator 2>/dev/null || echo 'iOS prebuilds already present'; cp -r prebuilds/ios-arm64 prebuilds/ios-x64-simulator 2>/dev/null || echo 'iOS prebuilds already present'",
+    "lint": "standard --ignore \"addon/**\"",
+    "lint:fix": "standard --ignore \"addon/**\" --fix",
+    "lint-cpp": "clang-tidy -p build $(find addon -name '*.cpp')",
+    "test": "npm run test:integration",
+    "test:integration": "bare test/integration/all.js --exit",
+    "test:dts": "tsc -p tsconfig.dts.json"
+  },
+  "files": [
+    "binding.js",
+    "index.js",
+    "addon.js",
+    "addonLogging.js",
+    "addonLogging.d.ts",
+    "prebuilds",
+    "index.d.ts",
+    "LICENSE",
+    "NOTICE"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/tetherto/qvac-lib-infer-stable-diffusion-cpp.git"
+  },
+  "author": "Tether",
+  "license": "Apache-2.0",
+  "bugs": "https://github.com/tetherto/qvac-lib-infer-stable-diffusion-cpp/issues",
+  "homepage": "https://github.com/tetherto/qvac-lib-infer-stable-diffusion-cpp#readme",
+  "devDependencies": {
+    "@qvac/dl-filesystem": "^0.1.2",
+    "@qvac/dl-hyperdrive": "^0.1.1",
+    "bare-buffer": "^3.4.2",
+    "bare-fs": "^4.5.1",
+    "cmake-bare": "1.7.5",
+    "cmake-vcpkg": "^1.1.0",
+    "standard": "^17.0.0",
+    "typescript": "^5.9.2"
+  },
+  "dependencies": {
+    "@qvac/infer-base": "^0.2.2",
+    "bare-path": "^3.0.0",
+    "bare-process": "^4.2.2"
+  },
+  "engines": {
+    "bare": ">=1.24.0"
+  },
+  "peerDependencies": {
+    "@qvac/dl-hyperdrive": "^0.1.1"
+  },
+  "exports": {
+    "./package": "./package.json",
+    ".": {
+      "types": "./index.d.ts",
+      "default": "./index.js"
+    },
+    "./addonLogging": {
+      "types": "./addonLogging.d.ts",
+      "default": "./addonLogging.js"
+    },
+    "./addonLogging.js": "./addonLogging.js",
+    "./addon.js": "./addon.js",
+    "./binding.js": "./binding.js"
+  },
+  "types": "index.d.ts"
+}
