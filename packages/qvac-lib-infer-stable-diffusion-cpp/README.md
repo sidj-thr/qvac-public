@@ -1,6 +1,8 @@
 # qvac-lib-infer-stable-diffusion-cpp
 
-Native C++ addon for image and video generation using [stable-diffusion.cpp](https://github.com/leejet/stable-diffusion.cpp), built for the Bare Runtime. Supports Stable Diffusion 1.x / 2.x, SDXL, SD3, FLUX.1, FLUX.2 [klein], and Wan2.x video models.
+Native C++ addon for text-to-image generation using [stable-diffusion.cpp](https://github.com/leejet/stable-diffusion.cpp), built for the Bare Runtime. Supports **Stable Diffusion 1.x / 2.x** and **FLUX.2 [klein]**.
+
+> **Scope:** SD3, FLUX.1, and video generation (Wan2.x) are intentionally **not** supported.
 
 ## Table of Contents
 
@@ -8,7 +10,7 @@ Native C++ addon for image and video generation using [stable-diffusion.cpp](htt
 - [Prerequisites](#prerequisites)
 - [Building from Source](#building-from-source)
 - [Downloading Model Files](#downloading-model-files)
-- [Running the Example](#running-the-example)
+- [Running the Examples](#running-the-examples)
 - [Usage](#usage)
   - [1. Import the Model Class](#1-import-the-model-class)
   - [2. Create a Data Loader](#2-create-a-data-loader)
@@ -19,6 +21,7 @@ Native C++ addon for image and video generation using [stable-diffusion.cpp](htt
   - [7. Run Inference](#7-run-inference)
   - [8. Release Resources](#8-release-resources)
 - [Model File Reference](#model-file-reference)
+- [FLUX.2 Implementation Notes](#flux2-implementation-notes)
 - [License](#license)
 
 ---
@@ -128,9 +131,13 @@ A machine with **16 GB of unified memory** (e.g. MacBook Air M-series) can run t
 
 ---
 
-## Running the Example
+## Running the Examples
 
-After building and downloading the model files, run the load/unload example:
+Two runnable examples are provided.
+
+### Load / unload only
+
+Verifies the model loads and releases cleanly without running inference:
 
 ```bash
 npm run example
@@ -141,22 +148,39 @@ Expected output:
 ```
 FLUX.2 [klein] 4B — load/unload example
 ========================================
-Models dir : .../models
-Model      : flux-2-klein-4b-Q8_0.gguf
-LLM encoder: Qwen3-4B-Q6_K.gguf
-VAE        : flux2-vae.safetensors
-
-Loading model weights (this takes a moment)...
-...
 Model loaded in 12.0s
-
 Model is ready. (No inference in this example.)
-
-Unloading model...
 Done — all resources released.
 ```
 
-The example source lives at [`examples/load-model.js`](./examples/load-model.js).
+Source: [`examples/load-model.js`](./examples/load-model.js)
+
+### Text-to-image generation
+
+Generates a 512 × 512 PNG with a 20-step FLUX.2 run, saves it to `output/`:
+
+```bash
+npm run generate
+```
+
+Expected output:
+
+```
+FLUX.2 [klein] 4B — text-to-image inference
+============================================
+Loaded in 15.2s
+
+Starting generation...
+  [████████████████████] 20/20 steps
+
+Generated in 610.0s
+Got 1 image(s)
+Saved → .../output/output_seed42_0.png
+```
+
+Source: [`examples/generate-image.js`](./examples/generate-image.js)
+
+> **Performance note:** On an M1 MacBook Air (16 GB) with Metal enabled, loading takes ~15 s and 20 steps at 512 × 512 take ~10 minutes. Reduce `STEPS` to 4 for quick tests — FLUX.2's distilled model is designed for low step counts.
 
 ---
 
@@ -197,11 +221,10 @@ const args = {
 |----------|----------|-------------|
 | `loader` | ✅ | Data loader that provides model file access |
 | `diskPath` | ✅ | Local directory where model files are stored |
-| `modelName` | ✅ | Diffusion model file name |
+| `modelName` | ✅ | Diffusion model file name (all-in-one for SD1.x/2.x; diffusion-only GGUF for FLUX.2) |
 | `logger` | — | Logger instance (e.g. `console`) |
-| `clipLModel` | — | Separate CLIP-L text encoder (FLUX.1, SD3) |
-| `clipGModel` | — | Separate CLIP-G text encoder (SDXL, SD3) |
-| `t5XxlModel` | — | Separate T5-XXL text encoder (FLUX.1, SD3) |
+| `clipLModel` | — | Separate CLIP-L text encoder (SD1.x / SDXL) |
+| `clipGModel` | — | Separate CLIP-G text encoder (SDXL) |
 | `llmModel` | — | Qwen3 LLM text encoder (FLUX.2 [klein]) |
 | `vaeModel` | — | Separate VAE file |
 
@@ -219,11 +242,10 @@ All config values are coerced to strings internally before being passed to the n
 |-----------|------|---------|-------------|
 | `threads` | number | auto | Number of CPU threads for model loading and CPU ops |
 | `wtype` | `'f32'` \| `'f16'` \| `'q4_0'` \| `'q8_0'` \| … | auto | Override weight quantisation type |
-| `rng` | `'cpu'` \| `'cuda'` | `'cpu'` | RNG backend for sampling noise |
+| `rng` | `'cpu'` \| `'cuda'` | `'cuda'` | RNG backend (`'cuda'` = philox; recommended — not GPU-specific) |
 | `clip_on_cpu` | `true` \| `false` | `false` | Force CLIP encoder to run on CPU |
 | `vae_on_cpu` | `true` \| `false` | `false` | Force VAE to run on CPU |
 | `flash_attn` | `true` \| `false` | `false` | Enable flash attention (reduces memory) |
-| `verbosity` | `0`–`3` | `0` | Log level: 0=error, 1=warn, 2=info, 3=debug |
 
 ### 5. Create a Model Instance
 
@@ -251,27 +273,59 @@ await model.load(true, progress => {
 
 ### 7. Run Inference
 
-#### Text-to-image
+#### Text-to-image (`model.run`)
+
+The primary API. Returns a `QvacResponse` that streams step-progress ticks and the final PNG:
 
 ```js
-const response = await model.txt2img({
-  prompt: 'a photo of a cat sitting on a red sofa, cinematic lighting',
+const images = []
+
+const response = await model.run({
+  prompt: 'a majestic red fox in a snowy forest, golden light, photorealistic',
+  steps: 20,
   width: 512,
   height: 512,
-  steps: 20,
-  cfg_scale: 7.0,
+  guidance: 3.5,   // distilled guidance scale — FLUX.2 specific
   seed: 42
 })
 
-// The output is a PNG-encoded Uint8Array
-for await (const chunk of response.iterate()) {
-  if (chunk instanceof Uint8Array) {
-    require('bare-fs').writeFileSync('output.png', chunk)
-  }
-}
+await response
+  .onUpdate(data => {
+    if (data instanceof Uint8Array) {
+      images.push(data)  // PNG-encoded output image
+    } else if (typeof data === 'string') {
+      try {
+        const tick = JSON.parse(data)
+        if ('step' in tick) process.stdout.write(`\rStep ${tick.step}/${tick.total}`)
+      } catch (_) {}
+    }
+  })
+  .await()
+
+require('bare-fs').writeFileSync('output.png', images[0])
 ```
 
-#### Image-to-image
+**Generation parameters:**
+
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| `prompt` | string | — | Text prompt |
+| `negative_prompt` | string | `''` | Things to avoid in the output |
+| `width` | number | `512` | Output width in pixels (multiple of 8) |
+| `height` | number | `512` | Output height in pixels (multiple of 8) |
+| `steps` | number | `20` | Number of diffusion steps |
+| `guidance` | number | `3.5` | Distilled guidance scale (FLUX.2) |
+| `cfg_scale` | number | `7.0` | Classifier-free guidance scale (SD1.x / SD2.x) |
+| `sampling_method` | string | auto | Sampler name; auto-selects `euler` for FLUX.2, `euler_a` for SD1.x |
+| `scheduler` | string | auto | Scheduler; auto-selected per model family |
+| `seed` | number | `-1` | Random seed (-1 for random) |
+| `batch_count` | number | `1` | Number of images to generate |
+| `vae_tiling` | boolean | `false` | Enable VAE tiling (required for large images on 16 GB) |
+| `cache_preset` | string | — | Step-caching preset: `slow`, `medium`, `fast`, `ultra` |
+
+> **Sampler note:** Do not set `sampling_method: 'euler_a'` for FLUX.2 models — it will produce random noise. Leave the field unset to let the library auto-select `euler` for flow-matching models.
+
+#### Image-to-image (`model.img2img`)
 
 ```js
 const inputPng = require('bare-fs').readFileSync('input.png')
@@ -283,33 +337,6 @@ const response = await model.img2img({
   steps: 20
 })
 ```
-
-#### Text-to-video (Wan2.x models only)
-
-```js
-const response = await model.txt2vid({
-  prompt: 'a bird flying over the ocean',
-  frames: 16,
-  fps: 8,
-  width: 512,
-  height: 512,
-  steps: 20
-})
-```
-
-**Generation parameters:**
-
-| Parameter | Type | Default | Description |
-|-----------|------|---------|-------------|
-| `prompt` | string | — | Text prompt |
-| `negative_prompt` | string | `''` | Things to avoid in the output |
-| `width` | number | `512` | Output width in pixels |
-| `height` | number | `512` | Output height in pixels |
-| `steps` | number | `20` | Number of diffusion steps |
-| `cfg_scale` | number | `7.0` | Classifier-free guidance scale |
-| `sampler` | string | `'euler_a'` | Sampling method (`euler_a`, `euler`, `dpm++_2m`, …) |
-| `seed` | number | `-1` | Random seed (-1 for random) |
-| `batch_count` | number | `1` | Number of images to generate |
 
 ### 8. Release Resources
 
@@ -334,18 +361,130 @@ await loader.close()
 
 > The `qwen_3_4b_fp4_flux2.safetensors` file from the ComfyUI repo **will not work** — FP4 quantisation is NVIDIA-specific and is not supported by ggml.
 
-### FLUX.1 dev / schnell
-
-| Role | Suggested file | Parameter |
-|------|---------------|-----------|
-| Diffusion model | `flux1-dev-Q4_K_M.gguf` | `modelName` |
-| CLIP-L | `clip_l.safetensors` | `clipLModel` |
-| T5-XXL | `t5xxl_fp16.safetensors` | `t5XxlModel` |
-| VAE | `ae.safetensors` | `vaeModel` |
-
 ### Stable Diffusion 1.x / 2.x
 
 Pass an all-in-one checkpoint directly as `modelName`. No separate encoders needed.
+
+---
+
+## FLUX.2 Implementation Notes
+
+This section documents non-obvious issues encountered integrating FLUX.2 [klein] into the addon and how each was resolved. These serve as a reference if the underlying `stable-diffusion.cpp` version is upgraded.
+
+### 1. Metal GPU backend not activated (macOS)
+
+**Symptom:** Generation ran entirely on CPU at 700%+ CPU usage; 20 steps at 512 × 512 never completed.
+
+**Root cause:** The vcpkg overlay port passed `-DGGML_METAL=ON` to CMake, which compiled the ggml Metal library (`libggml-metal.a`). However, `stable-diffusion.cpp` internally guards `ggml_backend_metal_init()` behind its own `SD_USE_METAL` preprocessor define, which is only set when `-DSD_METAL=ON` is passed — a separate flag from `GGML_METAL`.
+
+**Fix:** Changed the portfile (`vcpkg/ports/stable-diffusion-cpp/portfile.cmake`) from:
+
+```cmake
+-DGGML_METAL=${SD_GGML_METAL}
+```
+
+to:
+
+```cmake
+-DSD_METAL=${SD_GGML_METAL}
+```
+
+`-DSD_METAL=ON` causes `stable-diffusion.cpp`'s own `CMakeLists.txt` to set `GGML_METAL=ON` *and* emit `-DSD_USE_METAL`, which activates `ggml_backend_metal_init()` at runtime.
+
+**Verification:** After the fix, CPU usage dropped from ~700% to ~0.5% during generation, confirming the GPU is handling the compute.
+
+---
+
+### 2. Noise output instead of image — wrong prediction type default
+
+**Symptom:** Generation completed all 20 steps and produced a PNG, but the image was pure coloured noise (TV static).
+
+**Root cause:** `SdCtxConfig::prediction` defaulted to `EPS_PRED` (the classic SD1.x epsilon-prediction denoiser). When `SdModel::load()` passed this to `sd_ctx_params_t.prediction`, it overrode `stable-diffusion.cpp`'s auto-detection, forcing the wrong denoiser on a FLUX.2 flow-matching model. The correct sentinel value for auto-detection is `PREDICTION_COUNT`.
+
+**Fix:** Changed the default in `addon/src/handlers/SdCtxHandlers.hpp`:
+
+```cpp
+// Before
+prediction_t prediction = EPS_PRED;
+
+// After
+prediction_t prediction = PREDICTION_COUNT;  // auto-detect from GGUF metadata
+```
+
+---
+
+### 3. Noise output — wrong flow_shift default
+
+**Symptom:** Same noise output as above (compounded with fix 2).
+
+**Root cause:** `SdCtxConfig::flowShift` defaulted to `0.0f`. For FLUX.2, `stable-diffusion.cpp` expects `INFINITY` as the sentinel meaning "use the model's embedded flow-shift value". A value of `0.0f` disabled flow-shifting entirely, breaking the entire noise schedule.
+
+**Fix:**
+
+```cpp
+// Before
+float flowShift = 0.0f;
+
+// After
+float flowShift = std::numeric_limits<float>::infinity();  // use model's embedded value
+```
+
+---
+
+### 4. Wrong sampler default bypassing auto-detection
+
+**Symptom:** Even with fixes 1–3, the wrong sampler could be selected if passed explicitly.
+
+**Root cause:** `SdGenConfig::sampleMethod` defaulted to `EULER_A_SAMPLE_METHOD`. The `generate_image()` function in `stable-diffusion.cpp` only runs its auto-detection (`sd_get_default_sample_method()`) when `sample_method == SAMPLE_METHOD_COUNT`. Since we always passed `EULER_A` explicitly, FLUX.2 (a DiT flow-matching model that needs `EULER`) got the ancestral euler sampler instead, producing garbage.
+
+**Fix:** Changed the default in `addon/src/handlers/SdGenHandlers.hpp`:
+
+```cpp
+// Before
+sample_method_t sampleMethod = EULER_A_SAMPLE_METHOD;
+scheduler_t     scheduler    = DISCRETE_SCHEDULER;
+
+// After
+sample_method_t sampleMethod = SAMPLE_METHOD_COUNT;  // auto (euler for FLUX, euler_a for SD1.x)
+scheduler_t     scheduler    = SCHEDULER_COUNT;      // auto
+```
+
+With these sentinel values, `stable-diffusion.cpp` selects `euler` for DiT/FLUX models and `euler_a` for SD1.x/SD2.x automatically.
+
+---
+
+### 5. Wrong RNG default
+
+**Symptom:** Minor correctness difference vs reference CLI output.
+
+**Root cause:** `SdCtxConfig` defaulted to `rngType = CPU_RNG` (Mersenne Twister). `sd_ctx_params_init()` in `stable-diffusion.cpp` sets `CUDA_RNG` (the philox RNG — named `CUDA_RNG` for historical reasons but not GPU-specific). The philox RNG is the expected default across all platforms.
+
+**Fix:**
+
+```cpp
+// Before
+rng_type_t rngType        = CPU_RNG;
+rng_type_t samplerRngType = CPU_RNG;
+
+// After
+rng_type_t rngType        = CUDA_RNG;       // philox — matches sd_ctx_params_init default
+rng_type_t samplerRngType = RNG_TYPE_COUNT; // auto
+```
+
+---
+
+### Summary of default alignment
+
+The underlying pattern across all these fixes is the same: our C++ config structs had concrete default values that *overrode* `stable-diffusion.cpp`'s own sentinel-based auto-detection. The correct approach is to use the same sentinel values that `sd_ctx_params_init()` and `sd_sample_params_init()` set, and only pass concrete values when the caller explicitly requests them.
+
+| Field | Wrong default | Correct default | Effect of wrong value |
+|-------|--------------|-----------------|----------------------|
+| `prediction` | `EPS_PRED` | `PREDICTION_COUNT` | Forces SD1.x epsilon denoiser on FLUX.2 → noise |
+| `flow_shift` | `0.0f` | `INFINITY` | Disables flow-shifting → broken noise schedule |
+| `sample_method` | `EULER_A_SAMPLE_METHOD` | `SAMPLE_METHOD_COUNT` | Wrong sampler for flow-matching models → noise |
+| `scheduler` | `DISCRETE_SCHEDULER` | `SCHEDULER_COUNT` | Wrong schedule for FLUX.2 |
+| `rng_type` | `CPU_RNG` | `CUDA_RNG` | Different noise seed generation vs reference |
+| `ggml_metal` cmake flag | `-DGGML_METAL=ON` | `-DSD_METAL=ON` | Metal library compiled but never initialised |
 
 ---
 
