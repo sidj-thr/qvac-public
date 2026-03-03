@@ -9,9 +9,9 @@ endif()
 option(SD_CUDA "Enable CUDA GPU backend" OFF)
 if(SD_CUDA)
   list(APPEND VCPKG_MANIFEST_FEATURES "cuda")
-  # Locate libcudart.so to discover the CUDA lib directory, then add the whole
-  # directory so all CUDA shared libs (cudart, cublas, cublasLt, ...) are found
-  # at link time and their path is baked into the installed .bare RPATH.
+  # On Linux, ggml-cuda.a is statically linked into the .bare. Its CUDA
+  # kernel code references libcudart/libcublas symbols that must be resolved
+  # at load time — link them explicitly and bake the path into the RPATH.
   find_library(CUDA_RUNTIME_LIB cudart
     PATHS
       /usr/local/cuda/lib64
@@ -26,8 +26,14 @@ if(SD_CUDA)
   link_directories("${CUDA_LIB_DIR}")
   set(CMAKE_INSTALL_RPATH "${CUDA_LIB_DIR}")
   set(CMAKE_INSTALL_RPATH_USE_LINK_PATH TRUE)
-  message(STATUS "CUDA lib dir: ${CUDA_LIB_DIR}")
 endif()
+
+# Vulkan is auto-enabled in portfile.cmake via PLATFORM_OPTIONS on all
+# non-Apple, non-Android platforms — no separate feature flag needed here.
+# CUDA requires a specific build machine so it remains opt-in via SD_CUDA.
+#
+# GGML_BACKEND_DL is ON only on Android (set in portfile.cmake), mirroring the
+# qvac-fabric llama.cpp port. On Linux/macOS GPU backends are statically linked.
 
 find_package(cmake-bare REQUIRED PATHS node_modules/cmake-bare)
 find_package(cmake-vcpkg REQUIRED PATHS node_modules/cmake-vcpkg)
@@ -108,7 +114,7 @@ add_bare_module(qvac-lib-inference-addon-sd EXPORTS ${BACKEND_DL_LIBS})
       ggml::ggml
   )
 
-  # Link all CUDA shared libs needed by ggml-cuda so symbols are resolved at load time
+  # Link CUDA shared libs needed by the statically-linked ggml-cuda backend
   if(SD_CUDA)
     target_link_libraries(${qvac-lib-inference-addon-sd} PRIVATE cudart cublas cublasLt)
   endif()

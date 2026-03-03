@@ -1,7 +1,9 @@
 # stable-diffusion.cpp vcpkg overlay port
 #
 # Fetches stable-diffusion.cpp from GitHub (including the ggml submodule)
-# and builds it as a static library.
+# and builds it as a static library on all platforms except Android, where
+# each ggml GPU backend is compiled as a separate shared library loaded at
+# runtime via GGML_BACKEND_DL (mirroring the qvac-fabric llama.cpp port).
 #
 # The port installs:
 #   - include/stable-diffusion.h       (main C API)
@@ -11,14 +13,16 @@
 #   - share/stable-diffusion-cpp/      (CMake config)
 #
 # GPU backend selection is controlled via vcpkg features:
-#   - metal   -> -DGGML_METAL=ON   (macOS/iOS, auto-enabled on Apple)
-#   - vulkan  -> -DGGML_VULKAN=ON
-#   - cuda    -> -DGGML_CUDA=ON
-#   - opencl  -> -DGGML_OPENCL=ON
+#   - metal   -> -DSD_METAL=ON   (macOS/iOS, auto-enabled on Apple)
+#   - vulkan  -> -DSD_VULKAN=ON
+#   - cuda    -> -DSD_CUDA=ON
+#   - opencl  -> -DSD_OPENCL=ON  (Android/Adreno)
 #
-# NOTE: This port uses vcpkg_from_git which clones the repo so that
-# git submodule init/update works for ggml.
-# Update REF to pin a specific commit for reproducible builds.
+# In-place source edits applied after clone (see portfile for details):
+#   1. Rename libggml-*.so → libqvac-diffusion-ggml-*.so so the shipped
+#      Android libs don't clash with any system-installed ggml.
+#      (Cannot use vcpkg_apply_patches — ggml is a git submodule with its
+#       own .git so git apply on the parent silently skips those paths.)
 
 set(SD_CPP_REPO "https://github.com/leejet/stable-diffusion.cpp.git")
 # Pinned to release tag master-514-5792c66 (2026-03-01).
@@ -43,26 +47,82 @@ if(NOT EXISTS "${SOURCE_PATH}/CMakeLists.txt")
     )
 endif()
 
-# --- Determine GPU feature flags ---
-set(SD_GGML_METAL   OFF)
-set(SD_GGML_VULKAN  OFF)
-set(SD_GGML_CUDA    OFF)
-set(SD_GGML_OPENCL  OFF)
-set(SD_FLASH_ATTN   OFF)
+# --- Patch ggml submodule files ---
+# vcpkg_apply_patches cannot modify ggml because it is a git submodule with its
+# own .git — git apply on the parent repo silently skips submodule paths.
+# We use cmake file() string replacement instead, which works on any file.
 
-if("metal" IN_LIST FEATURES)
-    set(SD_GGML_METAL ON)
-elseif(VCPKG_TARGET_IS_OSX OR VCPKG_TARGET_IS_IOS)
-    # Auto-enable Metal on Apple platforms even without the feature flag
-    set(SD_GGML_METAL ON)
+# 1. rename-ggml-libs:
+#    a) set OUTPUT_NAME on each backend MODULE so the .so is
+#       libqvac-diffusion-ggml-<backend>.so instead of libggml-<backend>.so.
+set(_cmake_file "${SOURCE_PATH}/ggml/src/CMakeLists.txt")
+file(READ "${_cmake_file}" _cmake_contents)
+string(REPLACE
+    "add_library(\${backend} MODULE \${ARGN})\n        # write the shared library"
+    "add_library(\${backend} MODULE \${ARGN})\n        set_target_properties(\${backend} PROPERTIES OUTPUT_NAME \"qvac-diffusion-\${backend}\")\n        # write the shared library"
+    _cmake_contents "${_cmake_contents}"
+)
+file(WRITE "${_cmake_file}" "${_cmake_contents}")
+
+#    b) update backend_filename_prefix() so ggml_backend_load_best() searches
+#       for the renamed libqvac-diffusion-ggml-* prefix at runtime.
+set(_reg_file "${SOURCE_PATH}/ggml/src/ggml-backend-reg.cpp")
+file(READ "${_reg_file}" _reg_contents)
+string(REPLACE
+    "return fs::u8path(\"ggml-\");"
+    "return fs::u8path(\"qvac-diffusion-ggml-\");"
+    _reg_contents "${_reg_contents}"
+)
+string(REPLACE
+    "return fs::u8path(\"libggml-\");"
+    "return fs::u8path(\"libqvac-diffusion-ggml-\");"
+    _reg_contents "${_reg_contents}"
+)
+file(WRITE "${_reg_file}" "${_reg_contents}")
+
+# --- Platform options (mirrors qvac-fabric pattern) ---
+set(PLATFORM_OPTIONS)
+
+if(VCPKG_TARGET_IS_OSX OR VCPKG_TARGET_IS_IOS)
+    list(APPEND PLATFORM_OPTIONS -DSD_METAL=ON)
+else()
+    list(APPEND PLATFORM_OPTIONS -DSD_VULKAN=ON)
 endif()
 
-if("vulkan" IN_LIST FEATURES)
-    set(SD_GGML_VULKAN ON)
+# GGML_BACKEND_DL: each GPU backend compiles as a separate .so loaded at
+# runtime via dlopen. Enabled only on Android (matches qvac-fabric llama.cpp).
+# On Linux/macOS/Windows the backends are statically linked into the addon.
+if(VCPKG_TARGET_IS_ANDROID)
+    set(DL_BACKENDS ON)
+    list(APPEND PLATFORM_OPTIONS
+        -DGGML_BACKEND_DL=ON
+        -DGGML_CPU_ALL_VARIANTS=ON
+        -DGGML_CPU_REPACK=ON
+    )
+else()
+    set(DL_BACKENDS OFF)
+    list(APPEND PLATFORM_OPTIONS -DGGML_BACKEND_DL=OFF)
 endif()
+
+# --- GPU feature flags ---
+set(SD_GGML_CUDA   OFF)
+set(SD_GGML_OPENCL OFF)
+set(SD_FLASH_ATTN  OFF)
+set(SD_CUDA_COMPILER_OPTION "")
 
 if("cuda" IN_LIST FEATURES)
     set(SD_GGML_CUDA ON)
+    # Locate nvcc explicitly — /usr/local/cuda/bin may not be on the PATH that
+    # vcpkg's isolated cmake process inherits.
+    find_program(NVCC_EXECUTABLE nvcc
+        PATHS /usr/local/cuda/bin /usr/local/cuda-12.8/bin
+        NO_DEFAULT_PATH
+    )
+    if(NOT NVCC_EXECUTABLE)
+        find_program(NVCC_EXECUTABLE nvcc REQUIRED)
+    endif()
+    set(SD_CUDA_COMPILER_OPTION "-DCMAKE_CUDA_COMPILER=${NVCC_EXECUTABLE}")
+    message(STATUS "CUDA compiler: ${NVCC_EXECUTABLE}")
 endif()
 
 if("opencl" IN_LIST FEATURES)
@@ -80,11 +140,13 @@ vcpkg_cmake_configure(
         -DBUILD_SHARED_LIBS=OFF
         -DSD_BUILD_EXAMPLES=OFF
         -DSD_BUILD_SHARED_LIBS=OFF
-        -DSD_METAL=${SD_GGML_METAL}
-        -DSD_VULKAN=${SD_GGML_VULKAN}
         -DSD_CUDA=${SD_GGML_CUDA}
         -DSD_OPENCL=${SD_GGML_OPENCL}
         -DSD_FLASH_ATTN=${SD_FLASH_ATTN}
+        ${PLATFORM_OPTIONS}
+        ${SD_CUDA_COMPILER_OPTION}
+    MAYBE_UNUSED_VARIABLES
+        SD_FLASH_ATTN
 )
 
 vcpkg_cmake_install()

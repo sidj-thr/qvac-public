@@ -20,3 +20,5 @@ logs/
 .clang-tidy
 # Added by qvac-lint-cpp
 .clang-format
+output/
+*.deb
