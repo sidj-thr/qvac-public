@@ -207,7 +207,7 @@ std::any SdModel::process(const std::any& input) {
   genParams.sample_params.guidance.img_cfg           = gen.imgCfgScale < 0.0f
                                                          ? gen.cfgScale
                                                          : gen.imgCfgScale;
-  genParams.sample_params.eta        = gen.eta;
+  genParams.sample_params.eta = gen.eta;
   genParams.sample_params.flow_shift = config_.flowShift;
 
   // ── VAE tiling ────────────────────────────────────────────────────────────
