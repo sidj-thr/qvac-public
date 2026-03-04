@@ -86,31 +86,21 @@ file(WRITE "${_reg_file}" "${_reg_contents}")
 #    naturally once its work is complete.
 #
 #    The stub must appear AFTER <pthread.h> so that pthread_t is defined.
-#    We insert it right after the #include <pthread.h> line rather than
-#    prepending to the file (which broke because pthread_t was unknown).
+#    The patch is idempotent — a sentinel comment prevents double-insertion
+#    when vcpkg reuses a cached source tree across builds.
 if(VCPKG_TARGET_IS_ANDROID)
     set(_reg_file "${SOURCE_PATH}/ggml/src/ggml-backend-reg.cpp")
     file(READ "${_reg_file}" _reg_contents)
 
-    # Insert inline stub immediately after #include <pthread.h>
-    string(REPLACE
-        "#include <pthread.h>"
-        "#include <pthread.h>\n#if defined(__ANDROID__)\nstatic inline int pthread_cancel(pthread_t /*unused*/) { return 0; }\n#endif"
-        _reg_contents "${_reg_contents}"
-    )
-
-    # Fallback: if the file does not include <pthread.h> directly, prepend
-    # our own include + stub so the symbol is always available.
-    if(NOT _reg_contents MATCHES "static inline int pthread_cancel")
-        string(PREPEND _reg_contents
-            "#if defined(__ANDROID__)\n"
-            "#include <pthread.h>\n"
-            "static inline int pthread_cancel(pthread_t /*unused*/) { return 0; }\n"
-            "#endif\n"
+    set(_PTHREAD_SENTINEL "// QVAC: pthread_cancel stub for Android NDK")
+    if(NOT _reg_contents MATCHES "QVAC: pthread_cancel stub")
+        string(REPLACE
+            "#include <pthread.h>"
+            "#include <pthread.h>\n${_PTHREAD_SENTINEL}\n#if defined(__ANDROID__)\nstatic inline int pthread_cancel(pthread_t /*unused*/) { return 0; }\n#endif"
+            _reg_contents "${_reg_contents}"
         )
+        file(WRITE "${_reg_file}" "${_reg_contents}")
     endif()
-
-    file(WRITE "${_reg_file}" "${_reg_contents}")
 endif()
 
 # --- Platform options (mirrors qvac-fabric pattern) ---
@@ -134,6 +124,7 @@ if(VCPKG_TARGET_IS_ANDROID)
         -DGGML_BACKEND_DL=ON
         -DGGML_CPU_ALL_VARIANTS=ON
         -DGGML_CPU_REPACK=ON
+        -DSD_BUILD_SHARED_GGML_LIB=ON
         -DHAVE_PTHREAD_CANCEL=0
         -DGGML_HAVE_PTHREAD_CANCEL=OFF
     )
@@ -173,19 +164,24 @@ endif()
 
 # --- Configure and build ---
 # GGML_BACKEND_DL compiles each GPU backend as a MODULE (.so), which requires
-# BUILD_SHARED_LIBS=ON so CMake enables MODULE target support. On all other
-# platforms we keep everything statically linked (BUILD_SHARED_LIBS=OFF).
+# BUILD_SHARED_LIBS=ON so ggml-base is a shared library that MODULE backends
+# can link against at runtime.
+#
+# vcpkg maps VCPKG_LIBRARY_LINKAGE → BUILD_SHARED_LIBS; the arm64-android
+# triplet sets it to "static", which appends -DBUILD_SHARED_LIBS=OFF *after*
+# any OPTIONS we pass — overriding our explicit ON.
+#
+# Fix: override VCPKG_LIBRARY_LINKAGE for this port when DL backends are
+# needed. The stable-diffusion library itself is controlled separately by
+# SD_BUILD_SHARED_LIBS (kept OFF).
 if(DL_BACKENDS)
-    set(BUILD_SHARED_LIBS_OPTION -DBUILD_SHARED_LIBS=ON)
-else()
-    set(BUILD_SHARED_LIBS_OPTION -DBUILD_SHARED_LIBS=OFF)
+    set(VCPKG_LIBRARY_LINKAGE dynamic)
 endif()
 
 vcpkg_cmake_configure(
     SOURCE_PATH "${SOURCE_PATH}"
     DISABLE_PARALLEL_CONFIGURE
     OPTIONS
-        ${BUILD_SHARED_LIBS_OPTION}
         -DSD_BUILD_EXAMPLES=OFF
         -DSD_BUILD_SHARED_LIBS=OFF
         -DSD_CUDA=${SD_GGML_CUDA}
