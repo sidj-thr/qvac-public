@@ -194,6 +194,14 @@ public:
   [[nodiscard]] virtual llama_pos getNConversationOnlyTokens() const = 0;
 
   /**
+   * Get the nPast position before tool evaluation.
+   * This is used to find the boundary in the KV cache after evaluating
+   * conversation tokens but before tool tokens.
+   * @return the nPast position, or -1 if not set.
+   */
+  [[nodiscard]] virtual llama_pos getNPastBeforeTools() const { return -1; }
+
+  /**
    * The load media method. It loads the media from memory buffer.
    * Default implementation does nothing (for text-only contexts).
    * Override in multimodal contexts to provide media loading functionality.

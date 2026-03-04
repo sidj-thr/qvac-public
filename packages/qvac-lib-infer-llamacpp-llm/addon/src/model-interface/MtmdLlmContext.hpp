@@ -116,6 +116,8 @@ public:
 
   [[nodiscard]] llama_pos getNConversationOnlyTokens() const override;
 
+  [[nodiscard]] llama_pos getNPastBeforeTools() const override;
+
   /**
    * The load media method. It loads the media from memory buffer.
    *
@@ -207,6 +209,8 @@ private:
   bool toolsAtEnd_ = false;
 
   llama_pos nConversationOnlyTokens_ = 0;
+
+  llama_pos nPastBeforeTools_ = -1;
 };
 
 

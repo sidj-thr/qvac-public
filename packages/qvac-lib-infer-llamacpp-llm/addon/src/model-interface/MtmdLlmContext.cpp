@@ -346,6 +346,9 @@ bool MtmdLlmContext::evalMessageWithTools(
       nDiscarded_ = ctxSize - firstMsgTokens_ - 1;
     }
   }
+  if (toolsAtEnd_ && !tools.empty()) {
+    nPastBeforeTools_ = nPast_ - (static_cast<llama_pos>(nTokens) - nConversationOnlyTokens_);
+  }
   return true;
 }
 
@@ -482,6 +485,10 @@ llama_pos MtmdLlmContext::getNConversationOnlyTokens() const {
   return nConversationOnlyTokens_;
 }
 
+llama_pos MtmdLlmContext::getNPastBeforeTools() const {
+  return nPastBeforeTools_;
+}
+
 void MtmdLlmContext::loadMedia(const std::vector<uint8_t>& media) {
   if (media.empty()) {
     resetMedia();
@@ -549,6 +556,10 @@ void MtmdLlmContext::loadMedia(const std::string& fname) {
 }
 
 void MtmdLlmContext::resetState(bool resetStats) {
+
+  // Reset conversation-only tokens and nPastBeforeTools
+  nConversationOnlyTokens_ = 0;
+  nPastBeforeTools_ = -1;
   // Reset the n_past
   nPast_ = 0;
 

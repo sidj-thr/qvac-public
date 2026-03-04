@@ -271,6 +271,13 @@ llama_pos LlamaModel::getNConversationOnlyTokens() const {
   return 0;
 }
 
+llama_pos LlamaModel::getNPastBeforeTools() const {
+  if (llmContext_) {
+    return llmContext_->getNPastBeforeTools();
+  }
+  return -1;
+}
+
 void LlamaModel::llamaLogCallback(
     ggml_log_level level, const char* text, void* userData) {
   (void)userData;

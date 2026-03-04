@@ -133,6 +133,14 @@ public:
   llama_pos getNConversationOnlyTokens() const;
 
   /**
+   * Get the nPast position before tool evaluation.
+   * This is used to find the boundary in the KV cache after evaluating
+   * conversation tokens but before tool tokens.
+   * @return the nPast position, or -1 if not set.
+   */
+  llama_pos getNPastBeforeTools() const;
+
+  /**
    * Ensure model is initialized
    */
   void waitForLoadInitialization() final {

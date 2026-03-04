@@ -194,6 +194,11 @@ void TextLlmContext::tokenizeChat(
   bool addSpecial = false;
 
   if (nPast_ == 0 && !isCacheLoaded) {
+    nConversationOnlyTokens_ = 0;
+    nPastBeforeTools_ = -1;
+  }
+
+  if (nPast_ == 0 && !isCacheLoaded) {
     isLastMessageFromUser = true;
     addSpecial = true;
   } else if (nPast_ > 0) {
@@ -376,6 +381,9 @@ bool TextLlmContext::evalMessageWithTools(
       nDiscarded_ = ctxSize - firstMsgTokens_ - 1;
     }
   }
+  if (toolsAtEnd_ && !tools.empty()) {
+    nPastBeforeTools_ = nPast_ - (static_cast<llama_pos>(inputTokens.size()) - nConversationOnlyTokens_);
+  }
   return true;
 }
 
@@ -506,6 +514,11 @@ void TextLlmContext::stop() { stopGeneration_.store(true); }
 
 void TextLlmContext::resetState(bool resetStats) {
   // Reset the n_past
+
+  // Reset conversation-only tokens and nPastBeforeTools
+  if (resetStats) {
+    nPastBeforeTools_ = -1;
+  }
   nPast_ = 0;
 
   // Reset the first msg token length
@@ -551,6 +564,10 @@ void TextLlmContext::setToolsAtEnd(bool toolsAtEnd) {
 
 llama_pos TextLlmContext::getNConversationOnlyTokens() const {
   return nConversationOnlyTokens_;
+}
+
+llama_pos TextLlmContext::getNPastBeforeTools() const {
+  return nPastBeforeTools_;
 }
 
 llama_pos TextLlmContext::removeLastNTokens(llama_pos count) {
