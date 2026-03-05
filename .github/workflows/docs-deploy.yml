@@ -1,0 +1,118 @@
+# Automated Vercel deployment for docs/website (Next.js + Fumadocs).
+#
+# Preview  – every push to `main` that touches docs/website/**
+# Production – every push to `docs-production` that touches docs/website/**
+# Manual   – workflow_dispatch lets you pick preview or production
+#
+# ── Required secrets ────────────────────────────────────────────────
+#  VERCEL_TOKEN            – Vercel personal / team access token
+#  VERCEL_ORG_ID           – Team or personal scope ID (from .vercel/project.json)
+#  VERCEL_DOCS_PROJECT_ID  – Project ID for the docs site (from .vercel/project.json)
+#
+# To obtain the IDs, run `vercel link` inside docs/website/ locally, then
+# inspect .vercel/project.json for orgId and projectId.
+# ────────────────────────────────────────────────────────────────────
+
+name: Docs Deploy
+
+on:
+  push:
+    branches:
+      - main
+      - docs-production
+    paths:
+      - 'docs/website/**'
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Deploy target'
+        required: true
+        default: 'preview'
+        type: choice
+        options:
+          - preview
+          - production
+
+concurrency:
+  group: docs-deploy-${{ github.ref_name }}
+  cancel-in-progress: true
+
+env:
+  VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+  VERCEL_PROJECT_ID: ${{ secrets.VERCEL_DOCS_PROJECT_ID }}
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    environment:
+      name: ${{ (github.ref_name == 'docs-production' || inputs.environment == 'production') && 'docs-production' || 'docs-preview' }}
+      url: ${{ steps.deploy.outputs.url }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: docs/website/package-lock.json
+
+      - name: Install dependencies
+        working-directory: docs/website
+        run: npm ci
+
+      - name: Install Vercel CLI
+        run: npm install -g vercel@latest
+
+      - name: Determine deploy target
+        id: target
+        run: |
+          if [[ "${{ github.ref_name }}" == "docs-production" ]] || \
+             [[ "${{ inputs.environment }}" == "production" ]]; then
+            echo "is_production=true"  >> "$GITHUB_OUTPUT"
+            echo "vercel_env=production" >> "$GITHUB_OUTPUT"
+            echo "label=production"      >> "$GITHUB_OUTPUT"
+          else
+            echo "is_production=false" >> "$GITHUB_OUTPUT"
+            echo "vercel_env=preview"  >> "$GITHUB_OUTPUT"
+            echo "label=preview"       >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Pull Vercel project settings
+        working-directory: docs/website
+        run: vercel pull --yes --environment=${{ steps.target.outputs.vercel_env }} --token=${{ secrets.VERCEL_TOKEN }}
+
+      - name: Build with Vercel
+        working-directory: docs/website
+        run: |
+          if [[ "${{ steps.target.outputs.is_production }}" == "true" ]]; then
+            vercel build --prod --token=${{ secrets.VERCEL_TOKEN }}
+          else
+            vercel build --token=${{ secrets.VERCEL_TOKEN }}
+          fi
+
+      - name: Deploy to Vercel
+        id: deploy
+        working-directory: docs/website
+        run: |
+          if [[ "${{ steps.target.outputs.is_production }}" == "true" ]]; then
+            url=$(vercel deploy --prebuilt --prod --token=${{ secrets.VERCEL_TOKEN }})
+          else
+            url=$(vercel deploy --prebuilt --token=${{ secrets.VERCEL_TOKEN }})
+          fi
+          echo "url=$url" >> "$GITHUB_OUTPUT"
+
+      - name: Job summary
+        run: |
+          echo "### Docs deployed (${{ steps.target.outputs.label }})" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Key | Value |" >> "$GITHUB_STEP_SUMMARY"
+          echo "|-----|-------|" >> "$GITHUB_STEP_SUMMARY"
+          echo "| **URL** | ${{ steps.deploy.outputs.url }} |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| **Environment** | ${{ steps.target.outputs.label }} |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| **Branch** | \`${{ github.ref_name }}\` |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| **Commit** | \`${{ github.sha }}\` |" >> "$GITHUB_STEP_SUMMARY"

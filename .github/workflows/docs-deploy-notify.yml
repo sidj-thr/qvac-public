@@ -1,5 +1,7 @@
 # Notify docs owner when a release branch is pushed (e.g. after merge).
-# Docs live in the monorepo at packages/docs; deploy is via PR main → docs-production.
+# Docs live in the monorepo at docs/website; automated deployment is
+# handled by docs-deploy.yml (Vercel, triggered on push to main / docs-production).
+# This workflow creates an issue as a secondary notification for release awareness.
 name: Docs Deploy Notify
 
 on:
@@ -69,7 +71,8 @@ jobs:
               `- **Commit:** ${context.sha}`,
               `- **Link:** ${commitUrl}`,
               '',
-              'Please open a PR from `main` to `docs-production` (if applicable) and deploy after review.',
+              '> **Note:** Pushes to `main` trigger a preview deploy automatically via `docs-deploy.yml`.',
+              '> To promote to production, open a PR from `main` → `docs-production` and merge.',
               '',
               `cc @${notifyUser}`
             ].join('\n');
