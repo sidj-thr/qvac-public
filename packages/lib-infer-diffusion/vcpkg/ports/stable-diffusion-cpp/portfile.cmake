@@ -114,14 +114,16 @@ if(VCPKG_TARGET_IS_OSX OR VCPKG_TARGET_IS_IOS)
     set(_metal_dev_file "${SOURCE_PATH}/ggml/src/ggml-metal/ggml-metal-device.m")
     file(READ "${_metal_dev_file}" _metal_contents)
 
-    set(_NORM_SENTINEL "// QVAC: force NORM to CPU")
-    if(NOT _metal_contents MATCHES "QVAC: force NORM to CPU")
+    if(NOT _metal_contents MATCHES "QVAC: route NORM to CPU")
         string(REPLACE
-            "case GGML_OP_NORM:\n        case GGML_OP_RMS_NORM:\n            return has_simdgroup_reduction && (ggml_is_contiguous_rows(op->src[0]));"
-            "case GGML_OP_NORM:\n            ${_NORM_SENTINEL}\n            return false;\n        case GGML_OP_RMS_NORM:\n            return has_simdgroup_reduction && (ggml_is_contiguous_rows(op->src[0]));"
+            "case GGML_OP_NORM:"
+            "case GGML_OP_NORM: return false; /* QVAC: route NORM to CPU */"
             _metal_contents "${_metal_contents}"
         )
         file(WRITE "${_metal_dev_file}" "${_metal_contents}")
+        message(STATUS "[qvac] Patched GGML_OP_NORM → CPU fallback in ggml-metal-device.m")
+    else()
+        message(STATUS "[qvac] GGML_OP_NORM patch already applied")
     endif()
 endif()
 
