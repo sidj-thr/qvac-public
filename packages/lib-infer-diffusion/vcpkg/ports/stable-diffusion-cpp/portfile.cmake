@@ -178,6 +178,10 @@ if(DL_BACKENDS)
     set(VCPKG_LIBRARY_LINKAGE dynamic)
 endif()
 
+# Only build Release — debug builds of ggml/stable-diffusion are not needed
+# for the prebuild and can fail with MSVC iterator-debug-level mismatches.
+set(VCPKG_BUILD_TYPE release)
+
 vcpkg_cmake_configure(
     SOURCE_PATH "${SOURCE_PATH}"
     DISABLE_PARALLEL_CONFIGURE
@@ -274,5 +278,3 @@ file(REMOVE_RECURSE "${CURRENT_PACKAGES_DIR}/debug/share")
 
 # Install license
 vcpkg_install_copyright(FILE_LIST "${SOURCE_PATH}/LICENSE")
-
-set(VCPKG_BUILD_TYPE release)
