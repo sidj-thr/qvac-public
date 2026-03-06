@@ -58,6 +58,7 @@ struct SdCtxConfig {
   bool mmap = false;         // enable_mmap:           memory-map the GGUF file
   bool offloadToCpu = false; // offload_params_to_cpu: keep weights in RAM, load
                              // per-layer to GPU
+  std::string device = "gpu"; // "cpu" or "gpu" — selects compute backend
   bool keepClipOnCpu =
       false; // keep_clip_on_cpu:      keep CLIP encoder in CPU RAM
   bool keepVaeOnCpu =

@@ -63,6 +63,8 @@ export interface SdConfig {
   rng?: RngType
   /** Sampling schedule */
   schedule?: ScheduleType
+  /** Compute backend: 'gpu' (default) uses Metal/CUDA/Vulkan, 'cpu' forces CPU-only */
+  device?: 'cpu' | 'gpu'
   /** Run CLIP encoder on CPU even when GPU is available */
   clip_on_cpu?: boolean
   /** Run VAE decoder on CPU even when GPU is available */

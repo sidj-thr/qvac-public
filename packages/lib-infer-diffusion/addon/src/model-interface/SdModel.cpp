@@ -103,6 +103,16 @@ void SdModel::load() {
   // ── Memory management ─────────────────────────────────────────────────────
   params.enable_mmap = config_.mmap;
   params.offload_params_to_cpu = config_.offloadToCpu;
+
+  // device: "cpu" skips GPU backend entirely (sets env var read by init_backend())
+  if (config_.device == "cpu") {
+#ifdef _WIN32
+    _putenv_s("SD_CPU_ONLY", "1");
+#else
+    setenv("SD_CPU_ONLY", "1", 1);
+#endif
+  }
+
 #if defined(__APPLE__)
   // The ggml Metal backend does not fully support GGML_OP_NORM for
   // non-contiguous tensors (the CLIP text encoder hits this path).
