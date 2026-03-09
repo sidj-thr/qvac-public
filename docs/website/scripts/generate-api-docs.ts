@@ -133,7 +133,7 @@ async function generateApiDocs(
 
   console.log(`✓ Generated ${apiFunctions.length} MDX files`);
 
-  const indexMDX = generateIndexMDX(apiFunctions, version);
+  const indexMDX = await generateIndexMDX(apiFunctions, version);
   await fs.writeFile(path.join(outputDir, "index.mdx"), indexMDX, "utf-8");
   console.log(`✓ Generated index.mdx`);
 
@@ -306,7 +306,79 @@ ${examplesSection}
 `.trim();
 }
 
-function generateIndexMDX(functions: ApiFunction[], version: string): string {
+function extractChangelogForVersion(changelog: string, version: string): string | null {
+  const versionHeader = `## [${version}]`;
+  const startIdx = changelog.indexOf(versionHeader);
+  if (startIdx === -1) return null;
+
+  const contentStart = changelog.indexOf("\n", startIdx);
+  if (contentStart === -1) return null;
+
+  const nextVersionMatch = changelog.slice(contentStart).match(/\n## \[\d+\.\d+\.\d+\]/);
+  const sectionBody = nextVersionMatch
+    ? changelog.slice(contentStart, contentStart + nextVersionMatch.index!)
+    : changelog.slice(contentStart);
+
+  const lines = sectionBody.split("\n");
+  const filtered: string[] = [];
+  let currentCategory = "";
+
+  for (const line of lines) {
+    const categoryMatch = line.match(/^## (.+)$/);
+    if (categoryMatch) {
+      const cat = categoryMatch[1].trim();
+      if (/chore|infra|doc/i.test(cat)) {
+        currentCategory = "skip";
+        continue;
+      }
+      currentCategory = "keep";
+      filtered.push(`### ${cat}`);
+      continue;
+    }
+
+    if (currentCategory === "skip") continue;
+
+    if (line.startsWith("Release Date:")) {
+      filtered.push(line);
+      continue;
+    }
+
+    if (line.startsWith("- ")) {
+      filtered.push(line.replace(/ \(see PR \[#\d+\]\([^)]+\)\)/g, "").replace(/ - See \[[^\]]+\]\([^)]+\)/g, ""));
+      continue;
+    }
+
+    if (line.trim() === "") {
+      filtered.push("");
+    }
+  }
+
+  const result = filtered.join("\n").replace(/\n{3,}/g, "\n\n").trim();
+  return result || null;
+}
+
+async function readChangelog(): Promise<string> {
+  const changelogPath = path.join(SDK_PATH, "CHANGELOG.md");
+  try {
+    return await fs.readFile(changelogPath, "utf-8");
+  } catch {
+    console.log(`⚠️  CHANGELOG.md not found at ${changelogPath}, skipping "What's New" section`);
+    return "";
+  }
+}
+
+async function generateIndexMDX(functions: ApiFunction[], version: string): Promise<string> {
+  const changelog = await readChangelog();
+  const whatsNew = changelog ? extractChangelogForVersion(changelog, version) : null;
+
+  const whatsNewSection = whatsNew
+    ? `## What's New in v${version}
+
+${whatsNew}
+
+`
+    : "";
+
   return `---
 title: "API Reference"
 description: Complete API reference for QVAC SDK v${version}
@@ -316,7 +388,7 @@ description: Complete API reference for QVAC SDK v${version}
 
 Complete API reference for **QVAC SDK v${version}** with ${functions.length} functions.
 
-## Available Functions
+${whatsNewSection}## Available Functions
 
 ${functions
   .map((fn) => `- [\`${fn.name}()\`](./${fn.name}) - ${fn.description}`)
