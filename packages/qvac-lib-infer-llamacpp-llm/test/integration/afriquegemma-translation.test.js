@@ -173,6 +173,4 @@ test('AfriqueGemma: end-to-end African language translation', { timeout: 1_800_0
   }
 })
 
-setImmediate(() => {
-  setTimeout(() => {}, 500)
-})
+

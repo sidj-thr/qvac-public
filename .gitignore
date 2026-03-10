@@ -12,3 +12,8 @@ packages/**/.npmrc
 NOTICE_LOG.txt
 NOTICE_FULL_REPORT.txt
 .claude/worktrees
+
+# CI/build artifacts (do not commit)
+cpp-coverage-report-*/
+llama-cpp-*/
+prebuilds/
