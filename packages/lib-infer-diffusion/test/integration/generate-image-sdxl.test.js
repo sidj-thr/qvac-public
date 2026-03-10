@@ -55,6 +55,7 @@ test('SDXL txt2img — generates a valid PNG image', { timeout: 900000, skip: is
     {
       threads: 4,
       device: useCpu ? 'cpu' : 'gpu'
+
     }
   )
 
@@ -78,8 +79,8 @@ test('SDXL txt2img — generates a valid PNG image', { timeout: 900000, skip: is
       prompt: 'a red fox in a snowy forest, photorealistic',
       negative_prompt: 'blurry, low quality, watermark',
       steps: 10,
-      width: 512,
-      height: 512,
+      width: 1024,
+      height: 1024,
       cfg_scale: 6.5,
       seed: 15
     })
