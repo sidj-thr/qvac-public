@@ -16,7 +16,7 @@ on:
       - feature-*
       - tmp-*
     paths:
-      - "packages/qvac-lib-diagnostics/**"
+      - "packages/diagnostics/**"
   workflow_dispatch:
     inputs:
       custom_input_1:
@@ -49,8 +49,8 @@ jobs:
           base-sha: ${{ github.event.before }}
           head-sha: ${{ github.sha }}
           package-slug: diagnostics
-          package-json-path: packages/qvac-lib-diagnostics/package.json
-          changelog-path: packages/qvac-lib-diagnostics/CHANGELOG.md
+          package-json-path: packages/diagnostics/package.json
+          changelog-path: packages/diagnostics/CHANGELOG.md
 
   publish-logic:
     runs-on: ubuntu-latest
@@ -119,7 +119,7 @@ jobs:
           pat-token: ${{ secrets.PAT_TOKEN }}
           npm-token: ${{ secrets.NPM_TOKEN }}
           tag: ${{ needs.publish-logic.outputs.gpr_tag }}
-          workdir: packages/qvac-lib-diagnostics
+          workdir: packages/diagnostics
           name-suffix: "-mono"
 
   publish-release-npm:
@@ -131,7 +131,7 @@ jobs:
     uses: tetherto/qvac-devops/.github/workflows/public-reusable-npm.yml@monorepo_update
     secrets: inherit
     with:
-      workdir: packages/qvac-lib-diagnostics
+      workdir: packages/diagnostics
       repo_name: diagnostics
 
   # Create GitHub release only for actual releases (after NPM publish)
@@ -147,7 +147,7 @@ jobs:
       release_name: "QVAC diagnostics Lib"
       published_version: ${{ needs.publish-release-npm.outputs.published_version }}
       prev_sha: ${{ github.event.before }}
-      workdir: "packages/qvac-lib-diagnostics"
+      workdir: "packages/diagnostics"
 
   publish-feature-gpr:
     needs: publish-logic
@@ -168,7 +168,7 @@ jobs:
           pat-token: ${{ secrets.PAT_TOKEN }}
           npm-token: ${{ secrets.NPM_TOKEN }}
           tag: ${{ needs.publish-logic.outputs.gpr_tag }}
-          workdir: packages/qvac-lib-diagnostics
+          workdir: packages/diagnostics
           name-suffix: "-mono"
 
   publish-tmp-gpr:
@@ -190,5 +190,5 @@ jobs:
           pat-token: ${{ secrets.PAT_TOKEN }}
           npm-token: ${{ secrets.NPM_TOKEN }}
           tag: ${{ needs.publish-logic.outputs.gpr_tag }}
-          workdir: packages/qvac-lib-diagnostics
+          workdir: packages/diagnostics
           name-suffix: "-mono"
