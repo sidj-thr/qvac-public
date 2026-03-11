@@ -162,25 +162,19 @@ jobs:
           npm install
           npm install -g bare bare-make bare-runtime bare-https brittle
 
-      - name: Cache test models
-        uses: actions/cache@v4
-        with:
-          path: ${{ env.WORKDIR }}/test/model
-          key: llm-test-models-v1-${{ runner.os }}
-
       - name: Pre-download test models (Linux/macOS)
         if: ${{ matrix.platform != 'win32' }}
         working-directory: ${{ env.WORKDIR }}
         run: bash scripts/pre-download-models.sh
         shell: bash
-        timeout-minutes: 120
+        timeout-minutes: 30
 
       - name: Pre-download test models (Windows)
         if: ${{ matrix.platform == 'win32' }}
         working-directory: ${{ env.WORKDIR }}
         run: powershell -ExecutionPolicy Bypass -File scripts/pre-download-models.ps1
         shell: powershell
-        timeout-minutes: 120
+        timeout-minutes: 30
 
       - name: Download prebuilds (from artifacts)
         if: ${{ !inputs.prebuild_package }}
