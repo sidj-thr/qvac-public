@@ -1,6 +1,6 @@
 {
   "name": "@qvac/langdetect-text-cld2",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Language detection using CLD2 with same API as @qvac/langdetect-text",
   "main": "index.js",
   "types": "index.d.ts",
