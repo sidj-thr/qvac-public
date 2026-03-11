@@ -376,6 +376,10 @@ std::string LlamaModel::processPromptImpl(const Prompt& prompt) {
   std::string out;
   ResolvedPrompt resolved = resolveChatAndTools(prompt.input);
 
+  if (resolved.shouldResetAfterInference && llmContext_->getNPast() > 0) {
+    resetState(true);
+  }
+
   if (resolved.chatMsgs.empty() && resolved.tools.empty()) {
     QLOG_IF(
         Priority::INFO,
