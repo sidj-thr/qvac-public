@@ -23,7 +23,9 @@ vcpkg_from_github(
     PATCHES
         ggml-max-name.patch
         ggml-opencl-public-header.patch
+        ggml-opencl-graceful-no-devices.patch
         ggml-config-include-dir.patch
+        ggml-static-core-dl-backends.patch
 )
 
 # --- GPU feature flags ---
@@ -91,15 +93,12 @@ endif()
 # --- Platform options ---
 set(PLATFORM_OPTIONS)
 
+# stable-diffusion.cpp calls ggml_backend_cpu_init() and ggml_backend_is_cpu()
+# directly, so the CPU backend must be statically linked.  GGML_BACKEND_DL is
+# therefore OFF — all backends (CPU, Vulkan, OpenCL) are static libraries
+# linked into the consumer binary.
 if(VCPKG_TARGET_IS_ANDROID)
-    # GGML_BACKEND_DL compiles each GPU backend as a MODULE (.so) loaded at
-    # runtime via dlopen.  Requires BUILD_SHARED_LIBS=ON so ggml-base is a
-    # shared library that MODULE backends can link against.
-    set(VCPKG_LIBRARY_LINKAGE dynamic)
     list(APPEND PLATFORM_OPTIONS
-        -DGGML_BACKEND_DL=ON
-        -DGGML_CPU_ALL_VARIANTS=ON
-        -DGGML_CPU_REPACK=ON
         -DGGML_VULKAN_DISABLE_COOPMAT=ON
         -DGGML_VULKAN_DISABLE_COOPMAT2=ON
     )
@@ -127,18 +126,6 @@ vcpkg_cmake_configure(
 
 vcpkg_cmake_install()
 
-# --- Install DL backend .so files for Android ---
-# When GGML_BACKEND_DL is ON, ggml builds each backend as a MODULE target
-# but does NOT install them via cmake install().  They sit in the build
-# output directory (bin/).  Copy them into the vcpkg packages lib/ so the
-# consuming addon can find and bundle them.
-if(VCPKG_TARGET_IS_ANDROID)
-    file(GLOB _backend_sos "${CURRENT_BUILDTREES_DIR}/${TARGET_TRIPLET}-rel/bin/libggml-*.so")
-    if(_backend_sos)
-        file(INSTALL ${_backend_sos} DESTINATION "${CURRENT_PACKAGES_DIR}/lib")
-    endif()
-endif()
-
 # Fix up the CMake package config installed by ggml's own build system.
 vcpkg_cmake_config_fixup(PACKAGE_NAME ggml CONFIG_PATH lib/cmake/ggml)
 
@@ -160,6 +147,9 @@ vcpkg_fixup_pkgconfig()
 
 file(REMOVE_RECURSE "${CURRENT_PACKAGES_DIR}/debug/include")
 file(REMOVE_RECURSE "${CURRENT_PACKAGES_DIR}/debug/share")
+
+# DL backends are only built for release; debug build produces fewer binaries.
+set(VCPKG_POLICY_MISMATCHED_NUMBER_OF_BINARIES enabled)
 
 file(INSTALL "${CMAKE_CURRENT_LIST_DIR}/usage" DESTINATION "${CURRENT_PACKAGES_DIR}/share/${PORT}")
 vcpkg_install_copyright(FILE_LIST "${SOURCE_PATH}/LICENSE")

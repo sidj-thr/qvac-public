@@ -21,6 +21,7 @@ vcpkg_from_github(
     HEAD_REF master
     PATCHES
         sd-cpu-only.patch
+        sd-backend-priority.patch
         abort-callback.patch
         fix-failure-path-cleanup.patch
 )
@@ -92,4 +93,7 @@ file(INSTALL
 file(REMOVE_RECURSE "${CURRENT_PACKAGES_DIR}/debug/include")
 file(REMOVE_RECURSE "${CURRENT_PACKAGES_DIR}/debug/share")
 
+set(VCPKG_POLICY_MISMATCHED_NUMBER_OF_BINARIES enabled)
+
+file(INSTALL "${CMAKE_CURRENT_LIST_DIR}/usage" DESTINATION "${CURRENT_PACKAGES_DIR}/share/${PORT}")
 vcpkg_install_copyright(FILE_LIST "${SOURCE_PATH}/LICENSE")
