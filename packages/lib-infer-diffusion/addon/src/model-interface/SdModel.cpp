@@ -2,6 +2,7 @@
 
 #include <chrono>
 #include <cstring>
+#include <filesystem>
 #include <sstream>
 
 #define STB_IMAGE_IMPLEMENTATION
@@ -11,6 +12,8 @@
 #include <qvac-lib-inference-addon-cpp/Errors.hpp>
 #include <qvac-lib-inference-addon-cpp/Logger.hpp>
 #include <stb_image_write.h>
+
+#include <ggml-backend.h>
 
 #include "utils/BackendSelection.hpp"
 #include "utils/LoggingMacros.hpp"
@@ -115,6 +118,32 @@ void SdModel::load() {
   params.flash_attn = config_.flashAttn;
   params.diffusion_flash_attn = config_.diffusionFlashAttn;
 
+  // Load DL GPU backend modules before probing devices / creating the SD
+  // context. In GGML_BACKEND_DL mode, device enumeration is empty until these
+  // backend modules are loaded.
+#ifdef GGML_BACKEND_DL
+  {
+    static bool backendsLoaded = false;
+    if (!backendsLoaded) {
+      using Priority = qvac_lib_inference_addon_cpp::logger::Priority;
+      if (!config_.backendsDir.empty()) {
+        std::filesystem::path backendsDirPath(config_.backendsDir);
+#ifdef BACKENDS_SUBDIR
+        backendsDirPath = backendsDirPath / BACKENDS_SUBDIR;
+        backendsDirPath = backendsDirPath.lexically_normal();
+#endif
+        QLOG_IF(Priority::INFO,
+                 "Loading GPU backends from: " + backendsDirPath.string());
+        ggml_backend_load_all_from_path(backendsDirPath.string().c_str());
+      } else {
+        QLOG_IF(Priority::INFO, "Loading GPU backends from default path");
+        ggml_backend_load_all();
+      }
+      backendsLoaded = true;
+    }
+  }
+#endif
+
   // ── Memory management ─────────────────────────────────────────────────────
   params.enable_mmap = config_.mmap;
   params.offload_params_to_cpu = config_.offloadToCpu;
@@ -127,13 +156,15 @@ void SdModel::load() {
                              : sd_backend_selection::BackendDevice::GPU;
   auto effectiveDevice =
       sd_backend_selection::resolveBackendForDevice(preferredDevice);
+  const bool preferOpenClForAdreno =
+      sd_backend_selection::shouldPreferOpenClForAdreno(preferredDevice);
 
   if (effectiveDevice == sd_backend_selection::BackendDevice::CPU) {
-#ifdef _WIN32
-    _putenv_s("SD_CPU_ONLY", "1");
-#else
-    setenv("SD_CPU_ONLY", "1", 1);
-#endif
+    params.preferred_gpu_backend = SD_BACKEND_PREF_CPU;
+  } else if (preferOpenClForAdreno) {
+    params.preferred_gpu_backend = SD_BACKEND_PREF_OPENCL;
+  } else {
+    params.preferred_gpu_backend = SD_BACKEND_PREF_GPU;
   }
 
 #if defined(__APPLE__)
