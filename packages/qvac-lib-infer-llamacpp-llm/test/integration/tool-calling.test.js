@@ -35,9 +35,9 @@ const TOOL_MODEL_VARIANTS = isMobile
 const BASE_CONFIG = {
   device: useCpu ? 'cpu' : 'gpu',
   gpu_layers: '999',
-  ctx_size: '8192',
+  ctx_size: isMobile ? '4096' : '8192',
   temp: '0.1',
-  n_predict: '1024',
+  n_predict: isMobile ? '512' : '1024',
   verbosity: '2',
   tools: 'true'
 }
