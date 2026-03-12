@@ -3,27 +3,22 @@
 const path = require('bare-path')
 
 const BaseInference = require('@qvac/infer-base/WeightsProvider/BaseInference')
-const WeightsProvider = require('@qvac/infer-base/WeightsProvider/WeightsProvider')
 const { SdInterface } = require('./addon')
 
-const noop = () => {}
 const LOG_METHODS = ['error', 'warn', 'info', 'debug']
 
-/** Max ms to wait for the previous job to finish before throwing. */
-const PREVIOUS_JOB_WAIT_MS = 30
 const RUN_BUSY_ERROR_MESSAGE = 'Cannot set new job: a job is already set or being processed'
 
 /**
- * Image and video generation using stable-diffusion.cpp.
- * Supports SD1.x, SD2.x, SDXL, SD3, FLUX, Wan2.x video models.
+ * Text-to-image and image-to-image generation using stable-diffusion.cpp.
+ * Supports SD1.x, SD2.x, SDXL, SD3, and FLUX.2 [klein].
  */
 class ImgStableDiffusion extends BaseInference {
   /**
    * @param {object} args
-   * @param {object} args.loader - Data loader (Hyperdrive, filesystem, etc.)
    * @param {object} [args.logger] - Structured logger
    * @param {object} [args.opts] - Optional inference options
-   * @param {string} [args.diskPath='.'] - Local directory for downloaded weights
+   * @param {string} [args.diskPath='.'] - Local directory containing model weight files
    * @param {string} args.modelName - Model file name (e.g. 'flux1-dev-q4_0.gguf')
    * @param {string} [args.clipLModel] - Optional CLIP-L model file name (FLUX.1 / SD3)
    * @param {string} [args.clipGModel] - Optional CLIP-G model file name (SDXL / SD3)
@@ -35,7 +30,6 @@ class ImgStableDiffusion extends BaseInference {
   constructor (
     {
       opts = {},
-      loader,
       logger = null,
       diskPath = '.',
       modelName,
@@ -56,31 +50,13 @@ class ImgStableDiffusion extends BaseInference {
     this._t5XxlModel = t5XxlModel || null
     this._llmModel = llmModel || null
     this._vaeModel = vaeModel || null
-    this.weightsProvider = new WeightsProvider(loader, this.logger)
-    this._lastJobResult = Promise.resolve()
+    this._hasActiveResponse = false
   }
 
-  /**
-   * Load model weights, initialize the native addon, and activate.
-   * @param {boolean} [closeLoader=true]
-   * @param {Function} [onDownloadProgress]
-   */
-  async _load (closeLoader = true, onDownloadProgress = noop) {
+  async _load () {
     this.logger.info('Starting stable-diffusion model load')
 
     try {
-      const filesToDownload = [this._modelName]
-      if (this._clipLModel) filesToDownload.push(this._clipLModel)
-      if (this._clipGModel) filesToDownload.push(this._clipGModel)
-      if (this._t5XxlModel) filesToDownload.push(this._t5XxlModel)
-      if (this._llmModel) filesToDownload.push(this._llmModel)
-      if (this._vaeModel) filesToDownload.push(this._vaeModel)
-
-      await this.weightsProvider.downloadFiles(filesToDownload, this._diskPath, {
-        closeLoader,
-        onDownloadProgress
-      })
-
       // Route the primary model file to the correct stable-diffusion.cpp param:
       //
       //   model_path           — all-in-one checkpoints that embed their own text
@@ -118,24 +94,6 @@ class ImgStableDiffusion extends BaseInference {
       this.logger.error('Error during stable-diffusion model load:', error)
       throw error
     }
-  }
-
-  /**
-   * @param {Function} [onDownloadProgress]
-   * @param {object} [opts]
-   */
-  async _downloadWeights (onDownloadProgress, opts) {
-    const filesToDownload = [this._modelName]
-    if (this._clipLModel) filesToDownload.push(this._clipLModel)
-    if (this._clipGModel) filesToDownload.push(this._clipGModel)
-    if (this._t5XxlModel) filesToDownload.push(this._t5XxlModel)
-    if (this._llmModel) filesToDownload.push(this._llmModel)
-    if (this._vaeModel) filesToDownload.push(this._vaeModel)
-
-    return this.weightsProvider.downloadFiles(filesToDownload, this._diskPath, {
-      closeLoader: opts.closeLoader,
-      onDownloadProgress
-    })
   }
 
   /**
@@ -186,9 +144,6 @@ class ImgStableDiffusion extends BaseInference {
     } else if (data instanceof Uint8Array) {
       mappedEvent = 'Output'
     } else if (typeof data === 'string') {
-      try {
-        JSON.parse(data)
-      } catch (_) {}
       mappedEvent = 'Output'
     }
 
@@ -208,14 +163,14 @@ class ImgStableDiffusion extends BaseInference {
    * Unload the model and release all resources.
    */
   async unload () {
-    return this._withExclusiveRun(async () => {
+    return await this._withExclusiveRun(async () => {
       await this.cancel()
       const currentJobResponse = this._jobToResponse.get('OnlyOneJob')
       if (currentJobResponse) {
         currentJobResponse.failed(new Error('Model was unloaded'))
         this._deleteJobMapping('OnlyOneJob')
       }
-      // Guard: addon may never have been created if _load() threw before assignment.
+      this._hasActiveResponse = false
       if (this.addon) {
         await super.unload()
       }
@@ -224,7 +179,11 @@ class ImgStableDiffusion extends BaseInference {
   }
 
   /**
-   * Generate an image from a text prompt (primary API).
+   * Generate an image from a text prompt, or from an input image + text prompt.
+   *
+   * Mode is determined automatically:
+   *   - If `params.init_image` is provided → img2img
+   *   - Otherwise → txt2img
    *
    * Returns a QvacResponse that streams two types of updates:
    *   - Uint8Array  — PNG-encoded output image (one per batch_count)
@@ -244,44 +203,24 @@ class ImgStableDiffusion extends BaseInference {
    * @param {number} [params.batch_count=1]         - Images per call
    * @param {boolean} [params.vae_tiling=false]     - Enable VAE tiling (for large images)
    * @param {string}  [params.cache_preset]         - Cache preset: slow/medium/fast/ultra
+   * @param {Uint8Array} [params.init_image]        - Source image bytes for img2img (PNG/JPEG)
+   * @param {number}    [params.strength=0.75]      - img2img: 0 = keep source, 1 = ignore source
    * @returns {Promise<QvacResponse>}
    */
-  async run (params) {
-    return this._runGeneration({ ...params, mode: 'txt2img' })
-  }
+  async _runInternal (params) {
+    const mode = params.init_image ? 'img2img' : 'txt2img'
+    this.logger.info('Starting generation with mode:', mode)
 
-  /**
-   * Generate an image from an input image and text prompt.
-   *
-   * @param {object} params
-   * @param {Uint8Array} params.init_image   - Source image bytes (PNG/JPEG)
-   * @param {string}     params.prompt
-   * @param {number}    [params.strength=0.75] - 0 = keep source, 1 = ignore source
-   * @returns {Promise<QvacResponse>}
-   */
-  async img2img (params) {
-    if (!params.init_image) throw new Error('img2img requires init_image')
-    return this._runGeneration({ ...params, mode: 'img2img' })
-  }
-
-  async _runGeneration (params) {
-    this.logger.info('Starting generation with mode:', params.mode)
-
-    return this._withExclusiveRun(async () => {
-      await new Promise((resolve, reject) => {
-        const timer = setTimeout(() => {
-          reject(new Error(RUN_BUSY_ERROR_MESSAGE))
-        }, PREVIOUS_JOB_WAIT_MS)
-        this._lastJobResult
-          .then(() => { clearTimeout(timer); resolve() })
-          .catch(() => { clearTimeout(timer); resolve() })
-      })
+    return await this._withExclusiveRun(async () => {
+      if (this._hasActiveResponse) {
+        throw new Error(RUN_BUSY_ERROR_MESSAGE)
+      }
 
       const response = this._createResponse('OnlyOneJob')
 
       let accepted
       try {
-        accepted = await this.addon.runJob(params)
+        accepted = await this.addon.runJob({ ...params, mode })
       } catch (error) {
         this._deleteJobMapping('OnlyOneJob')
         response.failed(error)
@@ -295,7 +234,10 @@ class ImgStableDiffusion extends BaseInference {
         throw new Error(msg)
       }
 
-      this._lastJobResult = response.await()
+      this._hasActiveResponse = true
+      const finalized = response.await().finally(() => { this._hasActiveResponse = false })
+      finalized.catch(() => {})
+      response.await = () => finalized
 
       this.logger.info('Generation job started successfully')
 
