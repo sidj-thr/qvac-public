@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>tools_at_end vs tools_in_system Benchmark (20 turns)</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<style>
+  body { font-family: Arial, sans-serif; background: #f5f5f5; padding: 20px; }
+  .chart-container { background: white; border-radius: 8px; padding: 20px; margin-bottom: 30px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); max-width: 1000px; margin: 20px auto; }
+  h1 { text-align: center; color: #333; }
+  h2 { color: #555; margin-top: 0; }
+  .summary { text-align: center; font-size: 1.2em; color: #2a7; font-weight: bold; margin: 10px 0 20px; }
+</style>
+</head>
+<body>
+<h1>Benchmark: tools_at_end vs tools_in_system (reset+replay) — 20 turns</h1>
+<div class="summary">tools_at_end is 58.2% faster overall — 1281s saved across 20 turns</div>
+
+<div class="chart-container">
+  <h2>Wall Time per Turn (ms)</h2>
+  <canvas id="wallTime"></canvas>
+</div>
+
+<div class="chart-container">
+  <h2>TTFT per Turn (ms)</h2>
+  <canvas id="ttft"></canvas>
+</div>
+
+<div class="chart-container">
+  <h2>Prompt Tokens per Turn</h2>
+  <canvas id="promptTokens"></canvas>
+</div>
+
+<div class="chart-container">
+  <h2>Cache Tokens per Turn</h2>
+  <canvas id="cacheTokens"></canvas>
+</div>
+
+<script>
+const turns = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20];
+
+const wallC = [15170, 14715, 18888, 33931, 25176, 34469, 34793, 48309, 55290, 79505, 68549, 31217, 59721, 64927, 67227, 28996, 56640, 70631, 49090, 62575];
+const wallD = [21299, 20318, 20356, 20078, 21273, 49036, 70622, 104684, 99845, 132124, 141474, 158680, 193404, 203099, 160098, 117376, 164199, 185553, 139951, 177273];
+
+const ttftC = [7618, 5062, 6509, 8612, 12735, 10709, 9304, 18349, 15806, 46750, 19691, 15414, 18688, 21514, 39485, 12476, 25250, 34826, 27405, 23050];
+const ttftD = [13006, 7895, 7379, 9932, 10414, 16139, 34816, 64621, 66382, 87312, 107545, 131721, 152483, 154528, 125653, 109660, 128272, 141449, 133840, 143549];
+
+const promptC = [285, 161, 191, 296, 449, 257, 302, 386, 520, 469, 257, 196, 291, 304, 520, 191, 395, 549, 423, 286];
+const promptD = [285, 185, 235, 358, 271, 359, 683, 1041, 1201, 1428, 1758, 1969, 2089, 2376, 2617, 2833, 3052, 3230, 3384, 3526];
+
+const cacheC = [26, 43, 58, 77, 353, 374, 397, 426, 707, 990, 1013, 1034, 1057, 1085, 1368, 1383, 1411, 1691, 1969, 1991];
+const cacheD = [380, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
+
+const colorC = 'rgba(54, 162, 235, 0.8)';
+const colorD = 'rgba(255, 99, 132, 0.8)';
+const borderC = 'rgba(54, 162, 235, 1)';
+const borderD = 'rgba(255, 99, 132, 1)';
+
+function makeBarChart(id, dataC, dataD, yLabel) {
+  new Chart(document.getElementById(id), {
+    type: 'bar',
+    data: {
+      labels: turns.map(t => 'Turn ' + t),
+      datasets: [
+        { label: 'C: tools_at_end', data: dataC, backgroundColor: colorC, borderColor: borderC, borderWidth: 1 },
+        { label: 'D: tools_in_system (replay)', data: dataD, backgroundColor: colorD, borderColor: borderD, borderWidth: 1 }
+      ]
+    },
+    options: {
+      responsive: true,
+      plugins: { legend: { position: 'top' } },
+      scales: {
+        y: { beginAtZero: true, title: { display: true, text: yLabel } }
+      }
+    }
+  });
+}
+
+makeBarChart('wallTime', wallC, wallD, 'ms');
+makeBarChart('ttft', ttftC, ttftD, 'ms');
+makeBarChart('promptTokens', promptC, promptD, 'tokens');
+makeBarChart('cacheTokens', cacheC, cacheD, 'tokens');
+</script>
+</body>
+</html>
