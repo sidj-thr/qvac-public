@@ -278,9 +278,9 @@ async function runScenario (dirPath, modelName, opts) {
           ...(i === 0
             ? [{ role: 'system', content: 'You are a helpful assistant.' }, { role: 'user', content: turn.user }]
             : [
-              ...(lastAssistantResponse ? [{ role: 'assistant', content: lastAssistantResponse }] : []),
-              { role: 'user', content: turn.user }
-            ]),
+                ...(lastAssistantResponse ? [{ role: 'assistant', content: lastAssistantResponse }] : []),
+                { role: 'user', content: turn.user }
+              ]),
           ...turnTools
         ]
       } else if (dynamicTools) {
