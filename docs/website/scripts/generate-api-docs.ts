@@ -318,22 +318,36 @@ ${examplesSection}
 `.trim();
 }
 
+function formatShortSignature(fn: ApiFunction): string {
+  const sig = fn.signature.replace(/^function\s+/, "");
+  return sig.replace(/\|/g, "\\|");
+}
+
 function generateIndexMDX(functions: ApiFunction[], version: string): string {
+  const firstSentence = (text: string) => {
+    const match = text.match(/^[^.!?]+[.!?]/);
+    return match ? match[0] : text;
+  };
+
   return `---
-title: "API Reference"
-description: Complete API reference for QVAC SDK v${version}
+title: "@qvac/sdk"
+titleStyle: code
+description: API reference — v${version}
 ---
 
 ## Overview
 
-Complete API reference for **QVAC SDK v${version}** with ${functions.length} functions.
+\`@qvac/sdk\` npm package exposes a function-centric, typed JS API.
 
-## Available Functions
+## Functions
 
+| Function | Summary | Signature |
+| --- | --- | --- |
 ${functions
   .map((fn) => {
-    const badge = fn.deprecated ? " *(deprecated)*" : "";
-    return `- [\`${fn.name}()\`](./${fn.name})${badge} - ${fn.description}`;
+    const summary = firstSentence(fn.description).replace(/\|/g, "\\|");
+    const sig = formatShortSignature(fn);
+    return `| [\`${fn.name}()\`](./${fn.name}) | ${summary} | \`${sig}\` |`;
   })
   .join("\n")}
 `;
