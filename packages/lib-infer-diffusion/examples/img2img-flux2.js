@@ -15,7 +15,7 @@ const ImgStableDiffusion = require('../index')
 async function main () {
   const modelDir = path.join(__dirname, '../models')
   const inputImagePath = path.join(__dirname, '../temp/nik_headshot.jpeg')
-  const outputImagePath = path.join(modelDir, 'output-img2img.png')
+  const outputImagePath = path.join(__dirname, '../temp/nik_transformed.png')
 
   // Check if input image exists
   if (!fs.existsSync(inputImagePath)) {
@@ -52,7 +52,7 @@ async function main () {
     const initImage = fs.readFileSync(inputImagePath)
     console.log(`Input image: ${initImage.length} bytes`)
 
-    const STEPS = 3        // keep low for quick testing on M1 (each step ~60-120s)
+    const STEPS = 30        // effective denoising steps = floor(STEPS * STRENGTH)
     const STRENGTH = 0.5   // effective denoising steps = floor(STEPS * STRENGTH)
 
     console.log(`\nGenerating transformed image...`)
@@ -64,12 +64,12 @@ async function main () {
     let lastStepTime = tGenStart
 
     const response = await model.img2img({
-      prompt: 'professional headshot, studio lighting, sharp focus, high quality',
+      prompt: 'a european balkan male, wearing a suit, looking at the camera',
       negative_prompt: 'blurry, low quality, distorted',
       init_image: initImage,
       strength: STRENGTH,
       steps: STEPS,
-      guidance: 3.5,
+      guidance: 7.0,
       seed: 42
     })
 
