@@ -20,7 +20,7 @@ export const customTree: Node[] = [
     name: 'Home',
     url: '/',
     type: 'page',
-    icon: resolveIcon('Map'),
+    icon: resolveIcon('Home'),
   },
   {
     name: 'About QVAC',
@@ -58,16 +58,16 @@ export const customTree: Node[] = [
     name: 'Build',
   },
   {
+    name: 'Overview',
+    url: '/sdk',
+    type: 'page',
+    icon: resolveIcon('Map'),
+  },
+  {
     name: 'Getting started',
     type: 'folder',
     icon: resolveIcon('Compass'),
     children: [
-      {
-        name: 'Overview',
-        url: '/sdk',
-        type: 'page',
-        icon: resolveIcon('Toolbox'),
-      },
       {
         name: 'Quickstart',
         url: '/sdk/quickstart',
