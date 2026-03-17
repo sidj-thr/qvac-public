@@ -9,8 +9,9 @@ try { diagnostics = require('@qvac/diagnostics') } catch (e) { diagnostics = nul
 // _getDiagnosticsJSON method without requiring native bindings.
 // This mirrors the exact implementation in index.js.
 class TestOCR {
-  constructor ({ params }) {
+  constructor ({ params, addon }) {
     this.params = params
+    this.addon = addon || null
     this.state = {
       configLoaded: false,
       weightsLoaded: false,
@@ -21,10 +22,22 @@ class TestOCR {
   }
 
   _getDiagnosticsJSON () {
-    return JSON.stringify({
+    const jsData = {
       status: this.state.destroyed ? 'destroyed' : (this.state.configLoaded ? 'loaded' : 'not_loaded'),
       params: this.params
-    })
+    }
+
+    if (this.addon) {
+      try {
+        const cppJson = this.addon.getDiagnostics()
+        const cppData = JSON.parse(cppJson)
+        return JSON.stringify(Object.assign({}, jsData, { native: cppData }))
+      } catch (err) {
+        // Fall back to JS-only data if C++ diagnostics fail
+      }
+    }
+
+    return JSON.stringify(jsData)
   }
 }
 
@@ -121,4 +134,75 @@ test('round-trip: registerAddon with OCR callback, generateReport shows addon', 
   t.ok('params' in addonDiag, 'diagnostics should include params')
 
   diagnostics.reset()
+})
+
+test('_getDiagnosticsJSON merges C++ native data when addon is available', t => {
+  const mockCppData = {
+    onnxRuntimeVersion: 18,
+    executionProvider: 'CPU',
+    availableProviders: ['CPUExecutionProvider'],
+    modelLoaded: true,
+    modelPathDetector: '/path/to/detector.onnx',
+    modelPathRecognizer: '/path/to/recognizer.onnx',
+    pipelineMode: 'EASYOCR',
+    timeout: 120,
+    sessionOptions: {
+      recognizerBatchSize: 32,
+      magRatio: 1.5,
+      contrastRetry: false,
+      lowConfidenceThreshold: 0.4
+    }
+  }
+
+  const mockAddon = {
+    getDiagnostics () {
+      return JSON.stringify(mockCppData)
+    }
+  }
+
+  const ocr = new TestOCR({
+    params: { langList: ['en'], useGPU: false },
+    addon: mockAddon
+  })
+  ocr.state.configLoaded = true
+
+  const parsed = JSON.parse(ocr._getDiagnosticsJSON())
+  t.ok('status' in parsed, 'should include JS status field')
+  t.ok('params' in parsed, 'should include JS params field')
+  t.ok('native' in parsed, 'should include native field with C++ data')
+  t.is(parsed.native.executionProvider, 'CPU', 'native should contain executionProvider')
+  t.is(parsed.native.modelLoaded, true, 'native should contain modelLoaded')
+  t.is(parsed.native.pipelineMode, 'EASYOCR', 'native should contain pipelineMode')
+  t.ok(typeof parsed.native.onnxRuntimeVersion === 'number', 'onnxRuntimeVersion should be a number')
+  t.ok(Array.isArray(parsed.native.availableProviders), 'availableProviders should be an array')
+  t.ok('sessionOptions' in parsed.native, 'native should contain sessionOptions')
+})
+
+test('_getDiagnosticsJSON falls back to JS-only when addon.getDiagnostics throws', t => {
+  const mockAddon = {
+    getDiagnostics () {
+      throw new Error('native binding not available')
+    }
+  }
+
+  const ocr = new TestOCR({
+    params: { langList: ['en'] },
+    addon: mockAddon
+  })
+
+  const parsed = JSON.parse(ocr._getDiagnosticsJSON())
+  t.ok('status' in parsed, 'should include status field')
+  t.ok('params' in parsed, 'should include params field')
+  t.absent(parsed.native, 'should not include native field on error')
+})
+
+test('_getDiagnosticsJSON falls back to JS-only when addon is null', t => {
+  const ocr = new TestOCR({
+    params: { langList: ['en'] }
+  })
+
+  const parsed = JSON.parse(ocr._getDiagnosticsJSON())
+  t.ok('status' in parsed, 'should include status field')
+  t.ok('params' in parsed, 'should include params field')
+  t.absent(parsed.native, 'should not include native field when addon is null')
 })

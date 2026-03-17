@@ -88,6 +88,18 @@ class OcrFasttextInterface {
     }
   }
 
+  getDiagnostics () {
+    try {
+      return binding.getDiagnostics(this._handle)
+    } catch (err) {
+      throw new QvacErrorAddonOcr({
+        code: ERR_CODES.FAILED_TO_RUN_JOB,
+        adds: err.message,
+        cause: err
+      })
+    }
+  }
+
   async unload () {
     return this.destroy()
   }

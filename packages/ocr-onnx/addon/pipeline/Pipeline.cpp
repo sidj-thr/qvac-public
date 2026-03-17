@@ -10,6 +10,9 @@
 #include <opencv2/imgcodecs.hpp>
 #include <opencv2/imgproc.hpp>
 
+#include <nlohmann/json.hpp>
+#include <qvac-onnx/OnnxRuntime.hpp>
+
 #include "AndroidLog.hpp"
 #include "qvac-lib-inference-addon-cpp/Errors.hpp"
 #include "qvac-lib-inference-addon-cpp/Logger.hpp"
@@ -49,7 +52,8 @@ Pipeline::Pipeline(
     const std::string& pathDetector, const std::string& pathRecognizer,
     std::span<const std::string> langList, bool useGPU, int timeout,
     const PipelineConfig& config)
-    : config_(config), timeout_(timeout) {
+    : config_(config), pathDetector_(pathDetector),
+      pathRecognizer_(pathRecognizer), useGPU_(useGPU), timeout_(timeout) {
 
   std::string modeStr = (config.mode == PipelineMode::DOCTR) ? "DOCTR" : "EASYOCR";
   QLOG(qvac_lib_inference_addon_cpp::logger::Priority::INFO,
@@ -469,6 +473,38 @@ qvac_lib_inference_addon_cpp::RuntimeStats Pipeline::runtimeStats() const {
     {"recognitionTime", lastRecognitionTime},
     {"textRegionsCount", static_cast<int64_t>(lastTextRegionsCount)}
   };
+}
+
+std::string Pipeline::getDiagnosticsJSON() const {
+  nlohmann::json j;
+
+  j["onnxRuntimeVersion"] = ORT_API_VERSION;
+  j["executionProvider"] = useGPU_ ? "AUTO_GPU" : "CPU";
+  j["availableProviders"] = onnx_addon::OnnxRuntime::getAvailableProviders();
+  j["modelLoaded"] = isLoaded();
+  j["modelPathDetector"] = pathDetector_;
+  j["modelPathRecognizer"] = pathRecognizer_;
+  j["pipelineMode"] =
+      (config_.mode == PipelineMode::DOCTR) ? "DOCTR" : "EASYOCR";
+  j["timeout"] = timeout_;
+
+  nlohmann::json sessionOpts;
+  sessionOpts["recognizerBatchSize"] = config_.recognizerBatchSize;
+
+  if (config_.mode == PipelineMode::EASYOCR) {
+    sessionOpts["magRatio"] = config_.magRatio;
+    sessionOpts["contrastRetry"] = config_.contrastRetry;
+    sessionOpts["lowConfidenceThreshold"] = config_.lowConfidenceThreshold;
+  } else {
+    std::string decodingStr =
+        (config_.decodingMethod == DecodingMethod::CTC) ? "CTC" : "ATTENTION";
+    sessionOpts["decodingMethod"] = decodingStr;
+    sessionOpts["straightenPages"] = config_.straightenPages;
+  }
+
+  j["sessionOptions"] = sessionOpts;
+
+  return j.dump();
 }
 
 } // namespace qvac_lib_inference_addon_onnx_ocr_fasttext

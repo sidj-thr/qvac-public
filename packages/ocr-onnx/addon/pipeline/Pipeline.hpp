@@ -9,6 +9,8 @@
 #include <stack>
 #include <vector>
 
+#include <nlohmann/json.hpp>
+
 #include <qvac-lib-inference-addon-cpp/ModelInterfaces.hpp>
 #include <qvac-lib-inference-addon-cpp/RuntimeStats.hpp>
 
@@ -125,8 +127,13 @@ public:
 
   const PipelineConfig& config() const { return config_; }
 
+  [[nodiscard]] std::string getDiagnosticsJSON() const;
+
 private:
   PipelineConfig config_;
+  std::string pathDetector_;
+  std::string pathRecognizer_;
+  bool useGPU_;
 
   // EasyOCR pipeline steps (constructed when mode == EASYOCR)
   std::unique_ptr<StepDetectionInference> stepDetection_;
