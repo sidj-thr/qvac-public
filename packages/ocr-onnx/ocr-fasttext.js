@@ -93,7 +93,7 @@ class OcrFasttextInterface {
       return binding.getDiagnostics(this._handle)
     } catch (err) {
       throw new QvacErrorAddonOcr({
-        code: ERR_CODES.FAILED_TO_RUN_JOB,
+        code: ERR_CODES.FAILED_TO_GET_STATUS,
         adds: err.message,
         cause: err
       })
