@@ -22,7 +22,8 @@ using namespace qvac_lib_inference_addon_llama::utils;
 MtmdLlmContext::MtmdLlmContext(
     common_params& commonParams, common_init_result&& llamaInit, bool toolsAtEnd)
     : llamaInit_(std::move(llamaInit)), params_(commonParams),
-      model_(llamaInit_.model.get()), lctx_(llamaInit_.context.get()), toolsAtEnd_(toolsAtEnd) {
+      model_(llamaInit_.model.get()), lctx_(llamaInit_.context.get()) {
+  dynamicToolsState().setToolsAtEnd(toolsAtEnd);
 
   if (model_ == nullptr) {
     throw qvac_errors::StatusError(
@@ -40,7 +41,7 @@ MtmdLlmContext::MtmdLlmContext(
 
   vocab_ = llama_model_get_vocab(model_);
 
-  std::string chatTemplate = getChatTemplate(model_, params_, toolsAtEnd_);
+  std::string chatTemplate = getChatTemplate(model_, params_, dynamicToolsState().toolsAtEnd());
   tmpls_ = common_chat_templates_init(model_, chatTemplate);
 
   smpl_.reset(common_sampler_init(model_, params_.sampling));
@@ -153,6 +154,7 @@ void MtmdLlmContext::tokenizeChat(
   bool addSpecial = false;
 
   if (nPast_ == 0 && !isCacheLoaded) {
+    dynamicToolsState().reset();
     isLastMessageFromUser = true;
     addSpecial = true;
   } else if (nPast_ > 0) {
@@ -199,11 +201,14 @@ void MtmdLlmContext::tokenizeChat(
     throw qvac_errors::StatusError(ADDON_ID, toString(EncoderFailed), errorMsg);
   }
 
-  if (toolsAtEnd_ && !tools.empty()) {
+  if (dynamicToolsState().toolsAtEnd() && !tools.empty()) {
     auto savedTools = inputs.tools;
+    auto savedGenPrompt = inputs.add_generation_prompt;
     inputs.tools = {};
+    inputs.add_generation_prompt = false;
     auto promptNoTools = getPrompt(tmpls_.get(), inputs);
     inputs.tools = savedTools;
+    inputs.add_generation_prompt = savedGenPrompt;
 
     if (!promptNoTools.empty()) {
       mtmd_input_text textNoTools;
@@ -220,11 +225,12 @@ void MtmdLlmContext::tokenizeChat(
           bitmapsCPtr.size());
 
       if (resNoTools == 0) {
-        nConversationOnlyTokens_ = mtmd_helper_get_n_tokens(chunksNoTools.ptr.get());
+        dynamicToolsState().setConversationOnlyTokens(
+            mtmd_helper_get_n_tokens(chunksNoTools.ptr.get()));
       }
     }
   } else {
-    nConversationOnlyTokens_ = 0;
+    dynamicToolsState().setConversationOnlyTokens(0);
   }
 
   resetMedia();
@@ -341,9 +347,7 @@ bool MtmdLlmContext::evalMessageWithTools(
       nDiscarded_ = ctxSize - firstMsgTokens_ - 1;
     }
   }
-  if (toolsAtEnd_ && !tools.empty()) {
-    nPastBeforeTools_ = nPast_ - (static_cast<llama_pos>(nTokens) - nConversationOnlyTokens_);
-  }
+  dynamicToolsState().recordToolBoundary(nPast_, static_cast<llama_pos>(nTokens));
   return true;
 }
 
@@ -507,18 +511,6 @@ void MtmdLlmContext::setNDiscarded(llama_pos nDiscarded) {
   this->nDiscarded_ = nDiscarded;
 }
 
-void MtmdLlmContext::setToolsAtEnd(bool toolsAtEnd) {
-  this->toolsAtEnd_ = toolsAtEnd;
-}
-
-llama_pos MtmdLlmContext::getNPastBeforeTools() const {
-  return nPastBeforeTools_;
-}
-
-void MtmdLlmContext::setNPastBeforeTools(llama_pos nPastBeforeTools) {
-  nPastBeforeTools_ = nPastBeforeTools;
-}
-
 void MtmdLlmContext::loadMedia(const std::vector<uint8_t>& media) {
   if (media.empty()) {
     resetMedia();
@@ -587,9 +579,7 @@ void MtmdLlmContext::loadMedia(const std::string& fname) {
 
 void MtmdLlmContext::resetState(bool resetStats) {
 
-  // Reset conversation-only tokens and nPastBeforeTools
-  nConversationOnlyTokens_ = 0;
-  nPastBeforeTools_ = -1;
+  dynamicToolsState().reset();
   // Reset the n_past
   nPast_ = 0;
 

@@ -108,11 +108,6 @@ public:
    */
   void setNDiscarded(llama_pos nDiscarded) override;
 
-  void setToolsAtEnd(bool toolsAtEnd) override;
-
-  [[nodiscard]] llama_pos getNPastBeforeTools() const override;
-  void setNPastBeforeTools(llama_pos nPastBeforeTools) override;
-
   /**
    * The reset state method. It resets the context.
    *
@@ -186,13 +181,6 @@ private:
   bool isQwen3Model_ = false;
 
   std::atomic<bool> stopGeneration_ = false;
-
-  bool toolsAtEnd_ = false;
-
-
-  llama_pos nConversationOnlyTokens_ = 0;
-
-  llama_pos nPastBeforeTools_ = -1;
 };
 
 

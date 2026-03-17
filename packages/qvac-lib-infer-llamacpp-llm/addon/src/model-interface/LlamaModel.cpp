@@ -237,11 +237,6 @@ void LlamaModel::init(bool acquireLock) {
       std::move(llamaInit),
       snap->toolsAtEnd_);
 
-  // Apply tools_at_end flag
-  if (snap->llmContext_) {
-    snap->llmContext_->setToolsAtEnd(snap->toolsAtEnd_);
-  }
-
   if (snap->configuredNDiscarded_ > 0 && snap->llmContext_) {
     snap->llmContext_->setNDiscarded(snap->configuredNDiscarded_);
   }
@@ -269,7 +264,7 @@ bool LlamaModel::isLoaded() {
 llama_pos LlamaModel::getNPastBeforeTools() const {
   std::shared_lock lock(stateMtx_);
   if (state_->llmContext_) {
-    return state_->llmContext_->getNPastBeforeTools();
+    return state_->llmContext_->dynamicToolsState().nPastBeforeTools();
   }
   return -1;
 }
@@ -421,12 +416,16 @@ std::string LlamaModel::processPromptImpl(const Prompt& prompt) {
   if (!prompt.outputCallback) {
     out = oss.str();
   }
-  if (state_->toolsAtEnd_ && !resolved.tools.empty() &&
-      state_->llmContext_->getNPastBeforeTools() > 0 &&
-      state_->llmContext_->getNPast() > state_->llmContext_->getNPastBeforeTools()) {
+  auto& dts = state_->llmContext_->dynamicToolsState();
+  if (dts.toolsAtEnd() && !resolved.tools.empty() &&
+      dts.nPastBeforeTools() > 0 &&
+      state_->llmContext_->getNPast() > dts.nPastBeforeTools()) {
     state_->llmContext_->removeLastNTokens(
-        state_->llmContext_->getNPast() - state_->llmContext_->getNPastBeforeTools());
-    state_->llmContext_->setNPastBeforeTools(-1);
+        state_->llmContext_->getNPast() - dts.nPastBeforeTools());
+    dts.setNPastBeforeTools(-1);
+    if (state_->llmContext_->getFirstMsgTokens() > state_->llmContext_->getNPast()) {
+      state_->llmContext_->setFirstMsgTokens(state_->llmContext_->getNPast());
+    }
   }
   if (resolved.shouldResetAfterInference) {
     resetState(false);
@@ -513,6 +512,17 @@ void LlamaModel::commonParamsParse(
     std::transform(val.begin(), val.end(), val.begin(), ::tolower);
     state_->toolsAtEnd_ = (val == "true");
     configFilemap.erase(iter);
+  }
+
+  if (state_->toolsAtEnd_) {
+    auto arch = metadata_.tryGetString("general.architecture");
+    if (!arch.has_value() || arch.value() != "qwen3") {
+      QLOG_IF(
+          Priority::WARNING,
+          "[LlamaModel] tools_at_end is only supported for Qwen3 models, "
+          "ignoring\n");
+      state_->toolsAtEnd_ = false;
+    }
   }
 
   auto deviceIt = configFilemap.find("device");

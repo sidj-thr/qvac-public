@@ -110,6 +110,30 @@ struct ThreadPoolDeleter{
 };
 using ThreadPoolPtr = std::unique_ptr<ggml_threadpool, ThreadPoolDeleter>;
 
+class DynamicToolsState {
+public:
+  void setToolsAtEnd(bool v) { toolsAtEnd_ = v; }
+  [[nodiscard]] bool toolsAtEnd() const { return toolsAtEnd_; }
+  [[nodiscard]] llama_pos nPastBeforeTools() const { return nPastBeforeTools_; }
+  void setNPastBeforeTools(llama_pos pos) { nPastBeforeTools_ = pos; }
+  void recordToolBoundary(llama_pos nPast, llama_pos totalTokens) {
+    if (toolsAtEnd_ && nConversationOnlyTokens_ > 0) {
+      nPastBeforeTools_ = nPast - (totalTokens - nConversationOnlyTokens_);
+    }
+  }
+  void setConversationOnlyTokens(llama_pos n) { nConversationOnlyTokens_ = n; }
+  [[nodiscard]] llama_pos conversationOnlyTokens() const { return nConversationOnlyTokens_; }
+  void reset() {
+    nConversationOnlyTokens_ = 0;
+    nPastBeforeTools_ = -1;
+  }
+
+private:
+  bool toolsAtEnd_ = false;
+  llama_pos nConversationOnlyTokens_ = 0;
+  llama_pos nPastBeforeTools_ = -1;
+};
+
 class LlmContext { // NOLINT(cppcoreguidelines-special-member-functions)
 public:
   LlmContext() = default;
@@ -200,20 +224,9 @@ public:
    */
   virtual void setNDiscarded(llama_pos nDiscarded) = 0;
 
-  /**
-   * Set whether tools should be placed at the end of the prompt.
-   */
-  virtual void setToolsAtEnd(bool toolsAtEnd) = 0;
+  DynamicToolsState& dynamicToolsState() { return dynamicToolsState_; }
+  [[nodiscard]] const DynamicToolsState& dynamicToolsState() const { return dynamicToolsState_; }
 
-  /**
-   * Get the nPast position before tool evaluation.
-   * This is used to find the boundary in the KV cache after evaluating
-   * conversation tokens but before tool tokens.
-   * @return the nPast position, or -1 if not set.
-   */
-  [[nodiscard]] virtual llama_pos getNPastBeforeTools() const { return -1; }
-
-  virtual void setNPastBeforeTools(llama_pos nPastBeforeTools) {}
   /**
    * The load media method. It loads the media from memory buffer.
    * Default implementation does nothing (for text-only contexts).
@@ -269,6 +282,9 @@ public:
    *
    */
   virtual void resetMedia() {};
+
+private:
+  DynamicToolsState dynamicToolsState_;
 };
 
 
