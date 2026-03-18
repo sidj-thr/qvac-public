@@ -379,9 +379,6 @@ bool TextLlmContext::evalMessageWithTools(
     // NOLINTEND(cppcoreguidelines-pro-bounds-pointer-arithmetic,bugprone-narrowing-conversions,readability-implicit-bool-conversion,readability-identifier-naming)
   }
 
-  // Track input tokens for cache saving
-  allTokens_.insert(allTokens_.end(), inputTokens.begin(), inputTokens.end());
-
   if (isFirstMsg) {
     firstMsgTokens_ = nPast_;
     const auto ctxSize = static_cast<llama_pos>(llama_n_ctx(lctx_));
@@ -413,16 +410,6 @@ void TextLlmContext::applyContextDiscard() {
   llama_memory_seq_rm(mem, 0, firstMsgTokens_, firstMsgTokens_ + nDiscarded_);
   llama_memory_seq_add(
       mem, 0, firstMsgTokens_ + nDiscarded_, nPast_, -nDiscarded_);
-
-  // Remove discarded tokens from tracking buffer
-  if (firstMsgTokens_ < static_cast<llama_pos>(allTokens_.size())) {
-    auto eraseStart = allTokens_.begin() + firstMsgTokens_;
-    auto eraseEnd = eraseStart + nDiscarded_;
-    if (eraseEnd <= allTokens_.end()) {
-      allTokens_.erase(eraseStart, eraseEnd);
-    }
-  }
-
   nPast_ -= nDiscarded_;
   QLOG_IF(
       Priority::DEBUG,
@@ -477,9 +464,6 @@ bool TextLlmContext::generateResponse(
     llama_token tokenId = common_sampler_sample(smpl_.get(), lctx_, -1);
     common_sampler_accept(smpl_.get(), tokenId, true);
     --nRemain;
-
-    // Track generated token for cache saving
-    allTokens_.push_back(tokenId);
 
     std::string tokenStr =
         common_token_to_piece(lctx_, tokenId, params_.special);
@@ -575,9 +559,6 @@ void TextLlmContext::resetState(bool resetStats) {
   // Reset the first msg token length
   firstMsgTokens_ = 0;
 
-  // Clear token tracking buffer
-  allTokens_.clear();
-
   // Clear UTF-8 buffer when resetting state
   utf8Buffer_.clear();
 
@@ -623,11 +604,6 @@ llama_pos TextLlmContext::removeLastNTokens(llama_pos count) {
 
   if (tokensToRemove == 0) {
     return 0;
-  }
-
-  // Remove from token tracking buffer
-  if (tokensToRemove <= static_cast<llama_pos>(allTokens_.size())) {
-    allTokens_.resize(allTokens_.size() - tokensToRemove);
   }
 
   // Get the memory for KV cache manipulation

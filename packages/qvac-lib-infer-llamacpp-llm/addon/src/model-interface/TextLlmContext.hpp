@@ -132,18 +132,6 @@ public:
    */
   llama_pos removeLastNTokens(llama_pos count) override;
 
-  /**
-   * Get all tracked tokens for cache saving.
-   * @return vector of all token IDs that have been processed
-   */
-  const std::vector<llama_token>& getAllTokens() const { return allTokens_; }
-
-  /**
-   * Set tracked tokens for cache loading.
-   * @param tokens vector of token IDs to restore
-   */
-  void setAllTokens(const std::vector<llama_token>& tokens) { allTokens_ = tokens; }
-
 private:
   /**
    * The check antiprompt method. It checks the antiprompt.
@@ -200,9 +188,6 @@ private:
   bool isQwen3Model_ = false;
 
   std::atomic<bool> stopGeneration_ = false;
-
-  // Track all processed tokens for cache saving/loading
-  std::vector<llama_token> allTokens_;
 };
 
 
