@@ -261,3 +261,57 @@ test('CLD2: Indic scripts (Hindi, Bengali) detected', async (t) => {
   const bnResult = await detectOne(bengali)
   t.is(bnResult.code, 'bn', `Bengali detected (got ${bnResult.code}: ${bnResult.language})`)
 })
+
+// ---------------------------------------------------------------------------
+// Test: CLD2 – performance baseline (logged, not asserted)
+//
+// SPEC: "Highly optimized — ~1.8MB in size and roughly 10× faster than
+//       similar language detection tools"
+// WHY: The pitch claims speed as a selling point. Log timing so we have a
+//      baseline for future comparison. No assertions — hardware varies.
+// ---------------------------------------------------------------------------
+test('CLD2: performance baseline (timing logged)', async (t) => {
+  const shortText = 'The quick brown fox jumps over the lazy dog.'
+  const longText = 'The United Nations was established on October 24, 1945, with the aim of preventing future wars. It replaced the League of Nations, which had failed to prevent World War II. The organization has grown from 51 member states in 1945 to 193 member states today. Its headquarters is located in New York City, with other main offices in Geneva, Nairobi, and Vienna. The UN operates through six principal organs: the General Assembly, the Security Council, the Economic and Social Council, the Trusteeship Council, the International Court of Justice, and the Secretariat. Each organ has specific responsibilities and functions that contribute to the overall mission of maintaining international peace and security.'
+  const cjkText = '子供たちは庭で遊んでいて、両親は台所で夕食を作っています。日本は東アジアに位置する島国で、独自の文化と伝統を持っています。'
+
+  const now = () => Date.now()
+
+  // Warm-up call (first call may include module init overhead)
+  await detectOne(shortText)
+
+  // Single call timing
+  const t1 = now()
+  await detectOne(shortText)
+  const shortMs = now() - t1
+
+  const t2 = now()
+  await detectOne(longText)
+  const longMs = now() - t2
+
+  const t3 = now()
+  await detectOne(cjkText)
+  const cjkMs = now() - t3
+
+  const t4 = now()
+  await detectMultiple(longText, 3)
+  const multiMs = now() - t4
+
+  // Batch: 1000 sequential detectOne calls
+  const batchSize = 1000
+  const t5 = now()
+  for (let i = 0; i < batchSize; i++) {
+    await detectOne(shortText)
+  }
+  const batchMs = now() - t5
+  const avgMs = batchMs / batchSize
+
+  t.pass('performance timing collected')
+  t.comment('--- CLD2 Performance Baseline ---')
+  t.comment(`detectOne  (short, ${shortText.length} chars):  ${shortMs} ms`)
+  t.comment(`detectOne  (long,  ${longText.length} chars):  ${longMs} ms`)
+  t.comment(`detectOne  (CJK,   ${cjkText.length} chars):  ${cjkMs} ms`)
+  t.comment(`detectMultiple (long, topK=3):     ${multiMs} ms`)
+  t.comment(`batch ${batchSize}x detectOne (short):    ${batchMs} ms total, ${avgMs.toFixed(3)} ms/call avg`)
+  t.comment('--- end ---')
+})
