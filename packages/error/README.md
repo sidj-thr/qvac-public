@@ -8,6 +8,7 @@ This library provides standardized error handling capabilities for all QVAC libr
 npm i @qvac/error-base
 ```
 
+
 ## Features
 
 - Base error class extending native Error
