@@ -363,6 +363,11 @@ bool LlamaModel::isLoaded() {
   return static_cast<bool>(state_->llmContext_);
 }
 
+bool LlamaModel::isToolsAtEnd() const {
+  std::shared_lock lock(stateMtx_);
+  return state_->llmContext_ && state_->llmContext_->dynamicToolsState().toolsAtEnd();
+}
+
 llama_pos LlamaModel::getNPastBeforeTools() const {
   std::shared_lock lock(stateMtx_);
   if (state_->llmContext_) {

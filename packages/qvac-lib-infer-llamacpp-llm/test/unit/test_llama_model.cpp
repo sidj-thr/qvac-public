@@ -1079,6 +1079,8 @@ TEST_F(LlamaModelTest, CommonParamsParseToolsAtEndTrue) {
         std::string(test_projection_path),
         std::unordered_map<std::string, std::string>(config));
     model.waitForLoadInitialization();
+    // For non-Qwen3 models, tools_at_end should be disabled (false)
+    EXPECT_FALSE(model.isToolsAtEnd());
   });
 }
 

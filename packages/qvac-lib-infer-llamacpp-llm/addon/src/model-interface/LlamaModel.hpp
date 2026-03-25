@@ -159,6 +159,13 @@ public:
   bool isLoaded();
 
   /**
+   * Check if tools_at_end is enabled.
+   * Note: This returns the actual effective value after model-specific guards
+   * (e.g., only Qwen3 models support tools_at_end).
+   */
+  bool isToolsAtEnd() const;
+
+  /**
    * Get the nPast position before tool evaluation.
    * This is used to find the boundary in the KV cache after evaluating
    * conversation tokens but before tool tokens.
