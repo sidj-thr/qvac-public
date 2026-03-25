@@ -383,3 +383,101 @@ TEST_F(LlmContextBaseTest, RuntimeStatsConsistency) {
     EXPECT_GE(cacheTokens, 0.0);
   }
 }
+
+TEST_F(LlmContextBaseTest, OverflowWithSmallContextAndToolsAtEnd) {
+  // This test requires a Qwen3 model because tools_at_end is only supported for Qwen3.
+  std::string qwenModel = test_common::BaseTestModelPath::get(
+      "Qwen3-0.6B-Q8_0.gguf", "Qwen3-1.7B-Q4_0.gguf");
+  if (!fs::exists(qwenModel)) {
+    FAIL() << "Qwen3 model not found at " << qwenModel;
+  }
+
+  // Override configuration for this test
+  config_files["ctx_size"] = "512";
+  config_files["n_discarded"] = "400"; // large value to test cap
+  config_files["tools_at_end"] = "true";
+  test_model_path = qwenModel;
+  test_projection_path = "";
+
+  // Cleanup any existing session file from previous runs
+  const std::string sessionFile = "overflow_test_session.bin";
+  if (fs::exists(sessionFile)) {
+    fs::remove(sessionFile);
+  }
+
+  auto model = createModel();
+  if (!model) {
+    FAIL() << "Failed to load model";
+  }
+
+  // Helper to get a runtime stat value
+  auto getStat = [&](const std::string& key) -> double {
+    auto stats = model->runtimeStats();
+    for (const auto& stat : stats) {
+      if (stat.first == key) {
+        return std::visit(
+            [](const auto& value) -> double {
+              if constexpr (std::is_same_v<
+                                std::decay_t<decltype(value)>,
+                                double>) {
+                return value;
+              } else {
+                return static_cast<double>(value);
+              }
+            },
+            stat.second);
+      }
+    }
+    return 0.0;
+  };
+
+  // First turn: include a session message to enable cache, plus a tool and user message
+  std::string firstTurn = R"([{"role":"session","content":")" + sessionFile + R"("},{"type":"function","name":"test_tool","description":"A test tool","parameters":{"type":"object","properties":{}}},{"role":"user","content":"Hello, can you assist me?"}])";
+
+  EXPECT_NO_THROW({
+    std::string output = processPromptString(model, firstTurn);
+    EXPECT_GE(output.length(), 0);
+  });
+
+  // After first turn, no context slides yet
+  EXPECT_EQ(getStat("contextSlides"), 0.0);
+
+  // Build a moderately long user message (approx 150 tokens)
+  std::string longContent;
+  for (int i = 0; i < 150; ++i) {
+    longContent += "word ";
+  }
+
+  // Process several turns with the same session to accumulate context and cause overflow
+  const int numTurns = 10;
+  for (int turn = 0; turn < numTurns; ++turn) {
+    // Each turn includes the session message to keep cache active
+    std::string turnMsg = R"([{"role":"session","content":")" + sessionFile + R"("},{"role":"user","content":")" + longContent + R"("}])";
+    EXPECT_NO_THROW({
+      std::string output = processPromptString(model, turnMsg);
+      EXPECT_GE(output.length(), 0);
+    }) << "Turn " << turn << " failed";
+
+    double cacheTokens = getStat("CacheTokens");
+    EXPECT_LE(cacheTokens, 512.0) << "CacheTokens exceeded context limit at turn " << turn;
+    // Note: We don't check slides per turn because not every turn triggers overflow.
+    // The final check after the loop ensures that at least one slide occurred.
+  }
+
+  // Verify that slides have occurred
+  EXPECT_GT(getStat("contextSlides"), 0);
+
+  // Final check: model still functional after overflows (with session to avoid reset)
+  EXPECT_NO_THROW({
+    std::string output = processPromptString(model, R"([{"role":"session","content":")" + sessionFile + R"("},{"role":"user","content":"Hi"}])");
+    EXPECT_GE(output.length(), 0);
+  });
+
+  // Cache tokens should still be within the context limit
+  EXPECT_LE(getStat("CacheTokens"), 512.0);
+
+  // Cleanup session file
+  if (fs::exists(sessionFile)) {
+    fs::remove(sessionFile);
+  }
+}
