@@ -57,7 +57,7 @@ env:
 permissions:
   contents: read
 concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
+  group: Prebuilds (ONNX)-${{ github.ref }}
   cancel-in-progress: false
 
 jobs:

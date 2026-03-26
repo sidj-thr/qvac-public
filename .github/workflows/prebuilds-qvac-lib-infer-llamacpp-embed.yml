@@ -62,7 +62,7 @@ env:
   WORKDIR: ${{ inputs.workdir }}
 
 concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
+  group: Prebuilds (Embed)-${{ github.ref }}
   cancel-in-progress: false
 
 permissions:

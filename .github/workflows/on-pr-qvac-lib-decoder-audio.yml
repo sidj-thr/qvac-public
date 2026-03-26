@@ -47,7 +47,7 @@ on:
         default: "packages/qvac-lib-decoder-audio"
 
 concurrency:
-  group: ${{ github.workflow }}-pr-${{ github.event.pull_request.number || github.sha }}
+  group: On PR Trigger (Decoder-audio)-pr-${{ github.event.pull_request.number || github.sha }}
   cancel-in-progress: true
 
 permissions:

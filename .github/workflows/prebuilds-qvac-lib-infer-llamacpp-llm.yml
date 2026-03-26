@@ -70,7 +70,7 @@ env:
   WORKDIR: ${{ inputs.workdir }}
 
 concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
+  group: Prebuilds (LLM)-${{ github.ref }}
   cancel-in-progress: false
 
 permissions:

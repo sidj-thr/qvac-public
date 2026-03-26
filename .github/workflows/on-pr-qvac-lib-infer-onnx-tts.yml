@@ -47,7 +47,7 @@ on:
         default: "packages/qvac-lib-infer-onnx-tts"
 
 concurrency:
-  group: ${{ github.workflow }}-pr-${{ github.event.pull_request.number || github.sha }}
+  group: On PR Trigger (TTS)-pr-${{ github.event.pull_request.number || github.sha }}
   cancel-in-progress: true
 
 permissions:

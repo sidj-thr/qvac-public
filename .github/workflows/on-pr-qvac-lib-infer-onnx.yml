@@ -24,7 +24,7 @@ permissions:
   packages: read
 
 concurrency:
-  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.sha }}
+  group: On PR Trigger (ONNX)-${{ github.event.pull_request.number || github.sha }}
   cancel-in-progress: true
 
 jobs:

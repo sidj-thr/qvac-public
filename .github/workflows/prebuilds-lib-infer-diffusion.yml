@@ -65,7 +65,7 @@ env:
 permissions:
   contents: read
 concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
+  group: Prebuilds (Stable Diffusion)-${{ github.ref }}
   cancel-in-progress: false
 
 jobs:

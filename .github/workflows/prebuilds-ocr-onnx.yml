@@ -64,7 +64,7 @@ permissions:
   contents: read
 
 concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
+  group: Prebuilds (OCR)-${{ github.ref }}
   cancel-in-progress: false
 
 jobs:
