@@ -278,7 +278,7 @@ export async function* completion(
       history,
       tools,
       append: toolsMode === ToolsModeType.dynamic,
-    })
+    });
     setupToolGrammar(modelConfig as Record<string, unknown>, tools);
   }
 
