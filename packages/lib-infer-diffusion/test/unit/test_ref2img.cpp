@@ -171,10 +171,7 @@ protected:
   }
 
   static void TearDownTestSuite() {
-    if (model) {
-      model->unload();
-      model.reset();
-    }
+    model.reset();
   }
 
   void SetUp() override {
