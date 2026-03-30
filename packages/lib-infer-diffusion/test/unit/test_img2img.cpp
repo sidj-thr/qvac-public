@@ -35,12 +35,11 @@ inline std::string modelsDir() {
 #endif
 }
 
-// Returns path to the headshot image under temp/.
 inline std::string headshotPath() {
 #ifdef PROJECT_ROOT
-  return std::string(PROJECT_ROOT) + "/temp/nik_headshot.jpeg";
+  return std::string(PROJECT_ROOT) + "/assets/von-neumann.jpg";
 #else
-  return "temp/nik_headshot.jpeg";
+  return "assets/von-neumann.jpg";
 #endif
 }
 
@@ -156,9 +155,7 @@ protected:
     std::cout << "[SdImg2ImgTest] Model loaded.\n";
   }
 
-  static void TearDownTestSuite() {
-    model.reset();
-  }
+  static void TearDownTestSuite() { model.reset(); }
 
   void SetUp() override {
     if (!model)

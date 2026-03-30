@@ -35,10 +35,13 @@ const VAE_MODEL = {
   url: 'https://huggingface.co/black-forest-labs/FLUX.2-klein-4B/resolve/main/vae/diffusion_pytorch_model.safetensors'
 }
 
+const STEPS = 20
+const GUIDANCE = 3.5
+const SEED = 42
+
 test('FLUX2-klein img2img — transforms an input image', { timeout: 900000, skip: isMobile }, async (t) => {
   setupJsLogger(binding)
 
-  // Download models
   const [downloadedModelName, modelDir] = await ensureModel({
     modelName: FLUX2_MODEL.name,
     downloadUrl: FLUX2_MODEL.url
@@ -97,7 +100,7 @@ test('FLUX2-klein img2img — transforms an input image', { timeout: 900000, ski
     t.ok(loadMs < 180000, `Model loaded within 180s (took ${(loadMs / 1000).toFixed(1)}s)`)
 
     // ── Load init image ───────────────────────────────────────────────────────
-    const initImagePath = path.join(modelDir, '../temp/nik_headshot.jpeg')
+    const initImagePath = path.join(modelDir, '../assets/von-neumann.jpg')
     if (!fs.existsSync(initImagePath)) {
       t.fail(`Init image not found at ${initImagePath}`)
       return
@@ -107,17 +110,20 @@ test('FLUX2-klein img2img — transforms an input image', { timeout: 900000, ski
 
     // ── Generate (img2img) ────────────────────────────────────────────────────
     console.log('\n=== Generating image (img2img) ===')
+    console.log(`  Steps    : ${STEPS}`)
+    console.log(`  Guidance : ${GUIDANCE}`)
+    console.log(`  Seed     : ${SEED}`)
+
     const tGen = Date.now()
 
-    const response = await model.img2img({
-      prompt: 'professional headshot, studio lighting, sharp focus, high quality',
-      negative_prompt: 'blurry, low quality, distorted',
+    const response = await model.run({
+      prompt: 'same person, color photograph, modern tech CEO of this version, wearing a gray zip up vest, black studio background',
+      negative_prompt: 'blurry, low quality, NSFW, distorted, different person, different face',
       init_image: initImage,
-      strength: 0.5,
-      steps: 10,
-      // Note: Do not specify width/height for img2img - they are auto-detected from init_image
-      guidance: 3.5,
-      seed: 42
+      cfg_scale: 1.0,
+      steps: STEPS,
+      guidance: GUIDANCE,
+      seed: SEED
     })
 
     await response
@@ -140,16 +146,17 @@ test('FLUX2-klein img2img — transforms an input image', { timeout: 900000, ski
 
     // ── Assertions ────────────────────────────────────────────────────────────
     t.ok(progressTicks.length > 0, `Received progress ticks (got ${progressTicks.length})`)
-    t.is(progressTicks[progressTicks.length - 1].total, 10, 'Final progress tick reports 10 total steps')
+    t.is(progressTicks[progressTicks.length - 1].total, STEPS, `Final progress tick reports ${STEPS} total steps`)
 
     t.is(images.length, 1, 'Received exactly 1 image')
 
     const img = images[0]
     t.ok(img instanceof Uint8Array, 'Image is a Uint8Array')
-    t.ok(img.length > 0, `Image is non-empty (${img.length} bytes)`)
+    t.ok(img.length > 1000, `Image has meaningful size (${img.length} bytes)`)
     t.ok(isPng(img), 'Image has valid PNG magic bytes')
 
-    const outPath = path.join(modelDir, 'generate-image--flux2-klein-img2img-seed42.png')
+    const outDir = path.join(modelDir, '..')
+    const outPath = path.join(outDir, 'temp', 'integration-img2img-output.png')
     fs.writeFileSync(outPath, img)
     console.log(`\nSaved → ${outPath}`)
 

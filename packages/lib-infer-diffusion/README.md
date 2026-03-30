@@ -19,6 +19,7 @@ Native C++ addon for text-to-image generation using [stable-diffusion.cpp](https
   - [7. Release Resources](#7-release-resources)
 - [Model File Reference](#model-file-reference)
 - [FLUX.2 Implementation Notes](#flux2-implementation-notes)
+- [Credits](#credits)
 - [License](#license)
 
 ---
@@ -146,13 +147,15 @@ Source: [`examples/generate-image.js`](./examples/generate-image.js)
 
 > **Performance note:** On an M1 MacBook Air (16 GB) with Metal enabled, loading takes ~15 s and 20 steps at 512 × 512 take ~10 minutes. Reduce `STEPS` to 4 for quick tests — FLUX.2's distilled model is designed for low step counts.
 
-## Other Exampless
+## Other Examples
 
 -   [Quickstart](./examples/quickstart.js) – Minimal text-to-image generation with SD2.1.
 -   [Generate Image (SD2.1)](./examples/generate-image-sd2.js) – Text-to-image with an SD2.1 all-in-one GGUF model.
 -   [Generate Image (SD3)](./examples/generate-image-sd3.js) – Text-to-image with SD3 Medium (safetensors, diffusion + CLIP encoders).
 -   [Generate Image (SDXL)](./examples/generate-image-sdxl.js) – Text-to-image with an SDXL base all-in-one GGUF model.
 -   [Runtime Stats](./examples/runtime-stats-sd2.js) – Run SD2.1 inference and report runtime statistics.
+-   [img2img FLUX2](./examples/img2img-flux2.js) – Transform an image with FLUX2-klein (Q8_0, in-context conditioning).
+-   [img2img FLUX2 F16](./examples/img2img-flux2-f16.js) – Transform an image with FLUX2-klein (F16 full precision).
 
 ---
 
@@ -279,20 +282,28 @@ require('bare-fs').writeFileSync('output.png', images[0])
 
 > **Sampler note:** Do not set `sampling_method: 'euler_a'` for FLUX.2 models — it will produce random noise. Leave the field unset to let the library auto-select `euler` for flow-matching models.
 
-#### Image-to-image (not yet supported)
+#### Image-to-image (`init_image`)
 
-> **Note:** img2img is not yet wired in the JS layer — calling `model.run()` with `init_image` will throw. The parameters below are reserved for a future release.
+Pass `init_image` (a `Uint8Array` of PNG or JPEG bytes) to transform an existing image with a text prompt. Width and height are auto-detected from the image header.
+
+Under the hood this uses FLUX in-context conditioning: the input image is VAE-encoded into separate latent tokens that the transformer attends to via joint attention with distinct RoPE positions. The target starts from pure noise, so the model preserves features (skin tone, structure, etc.) while generating a fully new image.
 
 ```js
-const inputPng = require('bare-fs').readFileSync('input.png')
+const fs = require('bare-fs')
+
+const inputImage = fs.readFileSync('assets/von-neumann.jpg')
 
 const response = await model.run({
-  prompt: 'a photo of a cat in a snowy landscape',
-  init_image: inputPng,
-  strength: 0.75,  // 0.0 = no change, 1.0 = full redraw
-  steps: 20
+  prompt: 'a modern tech CEO version of this person, professional headshot',
+  init_image: inputImage,
+  cfg_scale: 1.0,
+  steps: 20,
+  guidance: 9.0,
+  seed: 42
 })
 ```
+
+The bundled test image (`assets/von-neumann.jpg`) is a 1956 portrait of John von Neumann sourced from the U.S. Department of Energy (Public Domain). See the [Credits](#credits) section for details.
 
 ### 7. Release Resources
 
@@ -438,6 +449,16 @@ The underlying pattern across all these fixes is the same: our C++ config struct
 | `scheduler` | `DISCRETE_SCHEDULER` | `SCHEDULER_COUNT` | Wrong schedule for FLUX.2 |
 | `rng_type` | `CPU_RNG` | `CUDA_RNG` | Different noise seed generation vs reference |
 | `ggml_metal` cmake flag | `-DGGML_METAL=ON` | `-DSD_METAL=ON` | Metal library compiled but never initialised |
+
+---
+
+## Credits
+
+### Test Image
+
+`assets/von-neumann.jpg` — **John von Neumann** (1956).
+Source: U.S. Department of Energy, File ID: HD.3F.191.
+This image is in the **Public Domain** as a work of the U.S. Federal Government.
 
 ---
 

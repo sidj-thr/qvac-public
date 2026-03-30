@@ -9,21 +9,18 @@ const ImgStableDiffusion = require('../index')
  * FLUX2-klein img2img example
  *
  * Transforms an input image using a text prompt via in-context conditioning.
- * The model attends to the reference image through joint attention, preserving
+ * The model attends to the input image through joint attention, preserving
  * features like skin tone and structure while generating a new image.
  */
 
 async function main () {
   const modelDir = path.join(__dirname, '../models')
-  // const inputImagePath = path.join(__dirname, '../temp/benjaminrutz.jpeg')
-  // const outputImagePath = path.join(__dirname, '../temp/benjaminrutz_transformed.png')
-const inputImagePath = path.join(__dirname, '../temp/nik_headshot_832.jpeg')
-const outputImagePath = path.join(__dirname, '../temp/nik_headshot_832_transformed.jpeg')
+  const inputImagePath = path.join(__dirname, '../assets/von-neumann.jpg')
+  const outputImagePath = path.join(__dirname, '../temp/von-neumann_transformed.png')
 
-  // Check if input image exists
   if (!fs.existsSync(inputImagePath)) {
     console.error(`Error: Input image not found at ${inputImagePath}`)
-    process.exit(1)
+    return
   }
 
   console.log('Loading FLUX2-klein model...')
@@ -55,9 +52,9 @@ const outputImagePath = path.join(__dirname, '../temp/nik_headshot_832_transform
     const initImage = fs.readFileSync(inputImagePath)
     console.log(`Input image: ${initImage.length} bytes`)
 
-    const STEPS = 30
-    const GUIDANCE = 6.0
-    const SEED = -1
+    const STEPS = 20
+    const GUIDANCE = 3.5
+    const SEED = 42
 
     console.log(`\n=== FLUX2-klein img2img ===`)
     console.log(`  Model    : flux-2-klein-4b-Q8_0.gguf`)
@@ -70,8 +67,8 @@ const outputImagePath = path.join(__dirname, '../temp/nik_headshot_832_transform
     let lastStepTime = tGenStart
 
     const response = await model.run({
-      prompt: 'put this person in a fast car driving in a drift with flames on the wheels, the persons face is visible, he looks cool, make sure the face is the same',
-      negative_prompt: 'blurry, low quality, distorted',
+      prompt: 'same person, color photograph, modern tech CEO of this version, wearing a gray zip up vest, black studio background',
+      negative_prompt: 'blurry, low quality, NSFW, distorted, different person, different face',
       init_image: initImage,
       cfg_scale: 1.0,
       steps: STEPS,

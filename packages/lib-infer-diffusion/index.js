@@ -187,11 +187,11 @@ class ImgStableDiffusion extends BaseInference {
    *   - If `params.init_image` is provided → img2img (uses in-context conditioning)
    *   - Otherwise → txt2img
    *
-   * img2img uses FLUX in-context conditioning: the reference image is VAE-encoded
+   * img2img uses FLUX in-context conditioning: the input image is VAE-encoded
    * into separate latent tokens that the transformer attends to via joint attention
    * with distinct RoPE positions. The target starts from pure noise, so the model
-   * reasons about the reference's features (skin tone, structure, etc.) while
-   * generating a fully new image.
+   * preserves the input's features (skin tone, structure, etc.) while generating
+   * a fully new image.
    *
    * Returns a QvacResponse that streams two types of updates:
    *   - Uint8Array  — PNG-encoded output image (one per batch_count)
@@ -212,9 +212,8 @@ class ImgStableDiffusion extends BaseInference {
    * @param {boolean} [params.vae_tiling=false]     - Enable VAE tiling (for large images)
    * @param {string}  [params.cache_preset]         - Cache preset: slow/medium/fast/ultra
    * @param {Uint8Array} [params.init_image]        - Source image bytes for img2img (PNG/JPEG).
-   *                                                   Uses in-context conditioning (reference tokens
-   *                                                   + joint attention) which preserves features
-   *                                                   like skin tone and structure.
+   *                                                   Uses in-context conditioning to preserve
+   *                                                   features like skin tone and structure.
    * @returns {Promise<QvacResponse>}
    */
   async _runInternal (params) {

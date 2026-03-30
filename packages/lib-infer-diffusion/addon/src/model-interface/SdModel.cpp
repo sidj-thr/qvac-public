@@ -469,8 +469,7 @@ std::any SdModel::process(const std::any& input) {
   if (gen.mode != "txt2img" && gen.mode != "img2img")
     throw StatusError(
         general_error::InvalidArgument,
-        "Unsupported mode: '" + gen.mode +
-            "'. Supported: txt2img, img2img.");
+        "Unsupported mode: '" + gen.mode + "'. Supported: txt2img, img2img.");
 
   // ── Build sd_img_gen_params_t ─────────────────────────────────────────────
   sd_img_gen_params_t genParams{};
@@ -513,17 +512,18 @@ std::any SdModel::process(const std::any& input) {
 
   // ── img2img — in-context conditioning ────────────────────────────────────
   //
-  // The reference image is VAE-encoded into separate latent tokens that are
+  // The input image is VAE-encoded into separate latent tokens that are
   // concatenated with the target (which starts as pure noise). The FLUX
-  // transformer attends to reference tokens via joint attention with distinct
-  // RoPE positions. This allows the model to reason about the reference's
-  // features (skin tone, structure, etc.) while generating a fully new image.
+  // transformer attends to these tokens via joint attention with distinct
+  // RoPE positions, preserving features (skin tone, structure, etc.) while
+  // generating a fully new image.
   //
   sd_image_t refImg{};
   std::vector<uint8_t> refPng;
 
   if (gen.mode == "img2img") {
-    // Decode reference image bytes from JSON (serialised by the JS layer).
+    // Decode image bytes from JSON (serialised by the JS layer as
+    // ref_image_bytes).
     if (auto it = v.get<picojson::object>().find("ref_image_bytes");
         it != v.get<picojson::object>().end() &&
         it->second.is<picojson::array>()) {
@@ -541,7 +541,7 @@ std::any SdModel::process(const std::any& input) {
 
       QLOG_IF(
           qvac_lib_inference_addon_cpp::logger::Priority::INFO,
-          "img2img: reference_image " + std::to_string(imgW) + "x" +
+          "img2img: init_image " + std::to_string(imgW) + "x" +
               std::to_string(imgH) +
               " — using in-context conditioning (pure noise target)");
 

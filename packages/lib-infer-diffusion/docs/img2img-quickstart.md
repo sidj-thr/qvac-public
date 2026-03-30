@@ -148,11 +148,10 @@ await model.img2img({
 Test img2img via the CLI script:
 
 ```bash
-# Edit scripts/headshot.sh to adjust prompt/parameters
-./scripts/headshot.sh
+bare examples/img2img-flux2.js
 ```
 
-Output will be saved to `temp/nik_transformed.png`.
+The bundled test image (`assets/von-neumann.jpg`) is used by default. Output is saved to `temp/von-neumann_transformed.png`.
 
 ## Troubleshooting
 

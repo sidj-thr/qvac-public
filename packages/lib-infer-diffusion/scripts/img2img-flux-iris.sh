@@ -34,7 +34,7 @@ GUIDANCE=9.0
 SEED=42
 
 # Note: Iris doesn't have a separate "strength" parameter like the JS API.
-# The img2img effect is controlled through the reference image and guidance scale.
+# The img2img effect is controlled through the input image and guidance scale.
 
 echo "Running FLUX2 img2img with Iris..."
 echo "Input  : $INPUT_IMAGE"

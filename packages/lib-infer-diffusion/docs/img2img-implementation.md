@@ -81,7 +81,7 @@ Bash script for testing img2img via stable-diffusion.cpp CLI:
   - `--llm` (not `--clip_l`)
   - `--prediction flux2_flow`
   - `--mode img_gen` (not `img2img`)
-- Processes `nik_headshot.jpeg` → `nik_transformed.png`
+- Processes `assets/von-neumann.jpg` → `temp/von-neumann_transformed.png`
 
 ## API Usage
 

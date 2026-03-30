@@ -14,13 +14,12 @@ const ImgStableDiffusion = require('../index')
 
 async function main () {
   const modelDir = path.join(__dirname, '../models')
-  const inputImagePath = path.join(__dirname, '../temp/nik_headshot_832.jpeg')
-  const outputImagePath = path.join(__dirname, '../temp/nik_headshot_832_transformed_f16.png')
+  const inputImagePath = path.join(__dirname, '../assets/von-neumann.jpg')
+  const outputImagePath = path.join(__dirname, '../temp/von-neumann_transformed_f16.png')
 
-  // Check if input image exists
   if (!fs.existsSync(inputImagePath)) {
     console.error(`Error: Input image not found at ${inputImagePath}`)
-    process.exit(1)
+    return
   }
 
   console.log('Loading FLUX2-klein F16 model (full precision)...')
@@ -69,7 +68,7 @@ async function main () {
     let lastStepTime = tGenStart
 
     const response = await model.run({
-      prompt: 'a sporty version of this photo, professional headshot.',
+      prompt: 'a modern tech CEO version of this person, professional headshot, studio lighting',
       negative_prompt: 'blurry, low quality, distorted',
       init_image: initImage,
       strength: STRENGTH,
