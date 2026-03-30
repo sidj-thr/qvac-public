@@ -7,7 +7,7 @@ const ImgStableDiffusion = require('../index')
 
 /**
  * FLUX2-klein F16 img2img example
- * 
+ *
  * Full precision (F16) version for comparison with Q8_0 quantized model.
  * This should have much less quantization bias.
  */
@@ -31,8 +31,8 @@ async function main () {
       loader,
       logger: console,
       diskPath: modelDir,
-      modelName: 'flux-2-klein-4b-F16.gguf',      // F16 full precision
-      llmModel: 'Qwen3-4B-Q8_0.gguf',             // Q8 text encoder
+      modelName: 'flux-2-klein-4b-F16.gguf', // F16 full precision
+      llmModel: 'Qwen3-4B-Q8_0.gguf', // Q8 text encoder
       vaeModel: 'flux2-vae.safetensors'
     },
     {
@@ -52,17 +52,17 @@ async function main () {
     console.log(`Input image: ${initImage.length} bytes`)
 
     const STEPS = 20
-    const STRENGTH = 1.0   // CRITICAL: Default is 0.75! Must be 1.0 for full denoising
-    const GUIDANCE = 9.0   // Match Iris exactly
-    const SEED = -1        // Match Iris exactly
+    const STRENGTH = 1.0 // CRITICAL: Default is 0.75! Must be 1.0 for full denoising
+    const GUIDANCE = 9.0 // Match Iris exactly
+    const SEED = -1 // Match Iris exactly
 
-    console.log(`\n=== F16 Full Precision Model (Iris-matched settings) ===`)
-    console.log(`  Model    : flux-2-klein-4b-F16.gguf (16-bit)`)
-    console.log(`  Steps    : ${STEPS}`)
-    console.log(`  Strength : ${STRENGTH} (EXPLICIT - addon defaults to 0.75!)`)
-    console.log(`  Effective: ${Math.round(STEPS * STRENGTH)} steps (matches Iris's 20 full steps)`)
-    console.log(`  Guidance : ${GUIDANCE}`)
-    console.log(`  Seed     : ${SEED}\n`)
+    console.log('\n=== F16 Full Precision Model (Iris-matched settings) ===')
+    console.log('  Model    : flux-2-klein-4b-F16.gguf (16-bit)')
+    console.log('  Steps    : ' + STEPS)
+    console.log('  Strength : ' + STRENGTH + ' (EXPLICIT - addon defaults to 0.75!)')
+    console.log('  Effective: ' + Math.round(STEPS * STRENGTH) + " steps (matches Iris's 20 full steps)")
+    console.log('  Guidance : ' + GUIDANCE)
+    console.log('  Seed     : ' + SEED + '\n')
 
     const tGenStart = Date.now()
     let lastStepTime = tGenStart
@@ -85,8 +85,8 @@ async function main () {
           console.log(`\n✓ Image generated in ${(totalMs / 1000).toFixed(1)}s`)
           fs.writeFileSync(outputImagePath, data)
           console.log(`✓ Saved to: ${outputImagePath}`)
-          console.log(`\nFor comparison, run the Q8 version:`)
-          console.log(`  bare examples/img2img-flux2.js`)
+          console.log('\nFor comparison, run the Q8 version:')
+          console.log('  bare examples/img2img-flux2.js')
         } else if (typeof data === 'string') {
           try {
             const tick = JSON.parse(data)

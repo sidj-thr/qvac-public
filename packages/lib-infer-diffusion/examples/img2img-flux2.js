@@ -56,12 +56,12 @@ async function main () {
     const GUIDANCE = 3.5
     const SEED = 42
 
-    console.log(`\n=== FLUX2-klein img2img ===`)
-    console.log(`  Model    : flux-2-klein-4b-Q8_0.gguf`)
-    console.log(`  Steps    : ${STEPS}`)
-    console.log(`  Guidance : ${GUIDANCE}`)
-    console.log(`  Seed     : ${SEED}`)
-    console.log(`  Note     : VAE encode runs first (no progress tick) — please wait...\n`)
+    console.log('\n=== FLUX2-klein img2img ===')
+    console.log('  Model    : flux-2-klein-4b-Q8_0.gguf')
+    console.log('  Steps    : ' + STEPS)
+    console.log('  Guidance : ' + GUIDANCE)
+    console.log('  Seed     : ' + SEED)
+    console.log('  Note     : VAE encode runs first (no progress tick) — please wait...\n')
 
     const tGenStart = Date.now()
     let lastStepTime = tGenStart
@@ -83,8 +83,8 @@ async function main () {
           console.log(`\n✓ Image generated in ${(totalMs / 1000).toFixed(1)}s`)
           fs.writeFileSync(outputImagePath, data)
           console.log(`✓ Saved to: ${outputImagePath}`)
-          console.log(`\nFor comparison, run the F16 version:`)
-          console.log(`  bare examples/img2img-flux2-f16.js`)
+          console.log('\nFor comparison, run the F16 version:')
+          console.log('  bare examples/img2img-flux2-f16.js')
         } else if (typeof data === 'string') {
           try {
             const tick = JSON.parse(data)
