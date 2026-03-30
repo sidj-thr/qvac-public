@@ -278,13 +278,11 @@ jobs:
           GIT_PAT: ${{ secrets.PAT_TOKEN }}
         run: |
           if [ -n "${GIT_PAT:-}" ]; then
-            git config --global url."https://x-access-token:${GIT_PAT}@github.com/".insteadOf "https://github.com/"
-            git config --global url."https://x-access-token:${GIT_PAT}@github.com/".insteadOf "git@github.com:"
-            git config --global url."https://x-access-token:${GIT_PAT}@github.com/".insteadOf "ssh://git@github.com/"
+            git config --global url."https://${GIT_PAT}:@github.com/".insteadOf "https://github.com/"
+            git config --global url."https://${GIT_PAT}:@github.com/".insteadOf "git@github.com:"
           else
-            git config --global url."https://x-access-token:${{ github.token }}@github.com/".insteadOf "https://github.com/"
-            git config --global url."https://x-access-token:${{ github.token }}@github.com/".insteadOf "git@github.com:"
-            git config --global url."https://x-access-token:${{ github.token }}@github.com/".insteadOf "ssh://git@github.com/"
+            git config --global url."https://${{ github.token }}:@github.com/".insteadOf "https://github.com/"
+            git config --global url."https://${{ github.token }}:@github.com/".insteadOf "git@github.com:"
           fi
 
       - name: Verify GitHub registry auth path
