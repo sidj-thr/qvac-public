@@ -105,8 +105,7 @@ export async function generateMetadata(
   if (!page) notFound();
   const isHomePage = !params.slug || params.slug.length === 0;
 
-  const title = page.data.title;
-  const description = page.data.description;
+  const { title, description } = page.data;
   const canonicalUrl = buildCanonicalDocsUrl(params.slug);
   const { section, tags } = inferDiataxisOpenGraph(page.path);
 
