@@ -16,7 +16,7 @@ inputs:
     required: false
     default: filesystem
   s3-bucket-path:
-    description: S3 bucket/key prefix when backend=s3
+    description: S3 key prefix (without bucket name) when backend=s3
     required: false
     default: ""
   cache-key-prefix:
@@ -45,9 +45,29 @@ runs:
       shell: bash
       run: mkdir -p "${{ steps.vars.outputs.cache_dir }}"
 
-    - name: Configure vcpkg binary sources
+    - name: Configure vcpkg binary sources (filesystem)
+      if: ${{ inputs.backend == 'filesystem' }}
       shell: bash
       run: echo "VCPKG_BINARY_SOURCES=clear;files,${{ github.workspace }}/${{ steps.vars.outputs.cache_dir }},readwrite" >> "$GITHUB_ENV"
+
+    - name: Validate S3 cache settings
+      if: ${{ inputs.backend == 's3' }}
+      shell: bash
+      run: |
+        if [ -z "${MODEL_S3_BUCKET:-}" ]; then
+          echo "::error::MODEL_S3_BUCKET is required when backend=s3"
+          exit 1
+        fi
+
+    - name: Configure vcpkg binary sources (S3)
+      if: ${{ inputs.backend == 's3' }}
+      shell: bash
+      run: |
+        PREFIX="${{ inputs.s3-bucket-path }}"
+        if [ -z "${PREFIX}" ]; then
+          PREFIX="vcpkg-cache"
+        fi
+        echo "VCPKG_BINARY_SOURCES=clear;x-aws,s3://${MODEL_S3_BUCKET}/${PREFIX}/,readwrite" >> "$GITHUB_ENV"
 
     - name: Restore filesystem cache
       if: ${{ inputs.backend == 'filesystem' }}
@@ -57,19 +77,3 @@ runs:
         path: ${{ steps.vars.outputs.cache_dir }}
         restore-keys: ${{ inputs.cache-key-prefix }}-${{ inputs.platform }}-${{ inputs.arch }}-
 
-    - name: Restore S3-backed cache
-      if: ${{ inputs.backend == 's3' && inputs.s3-bucket-path != '' }}
-      shell: bash
-      env:
-        AWS_DEFAULT_REGION: ${{ inputs.aws-region }}
-      run: |
-        set -e
-        KEY="${{ inputs.s3-bucket-path }}/${{ inputs.platform }}-${{ inputs.arch }}.tar.gz"
-        TMP_ARCHIVE="/tmp/vcpkg-cache-${{ inputs.platform }}-${{ inputs.arch }}.tar.gz"
-        if aws s3 cp "s3://${KEY}" "$TMP_ARCHIVE"; then
-          tar xzf "$TMP_ARCHIVE" -C "${{ steps.vars.outputs.cache_dir }}"
-          rm -f "$TMP_ARCHIVE"
-          echo "Restored S3 vcpkg cache from s3://${KEY}"
-        else
-          echo "No S3 cache found at s3://${KEY}; continuing without restore"
-        fi

@@ -34,13 +34,13 @@ on:
       vcpkg_cache_backend:
         description: filesystem or s3
         required: false
-        default: filesystem
+        default: s3
         type: choice
         options:
           - filesystem
           - s3
       vcpkg_s3_path:
-        description: Optional S3 path prefix for vcpkg cache
+        description: Optional S3 key prefix for vcpkg cache (bucket comes from MODEL_S3_BUCKET)
         required: false
         default: ""
         type: string
@@ -128,7 +128,7 @@ on:
       vcpkg_cache_backend:
         required: false
         type: string
-        default: filesystem
+        default: s3
       vcpkg_s3_path:
         required: false
         type: string
@@ -325,12 +325,16 @@ jobs:
 
       - name: Setup vcpkg cache
         uses: ./.github/actions/setup-vcpkg-cache
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          MODEL_S3_BUCKET: ${{ secrets.MODEL_S3_BUCKET }}
         with:
           workdir: ${{ env.WORKDIR }}
           platform: ${{ matrix.platform }}
           arch: ${{ matrix.arch }}
           backend: ${{ inputs.vcpkg_cache_backend }}
-          s3-bucket-path: ${{ inputs.vcpkg_s3_path }}
+          s3-bucket-path: ${{ inputs.vcpkg_s3_path != '' && inputs.vcpkg_s3_path || 'vcpkg-cache' }}
           cache-key-prefix: ${{ inputs.package_slug }}
 
       - name: Verify Vulkan toolchain (Linux)
