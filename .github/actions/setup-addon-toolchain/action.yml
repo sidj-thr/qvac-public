@@ -182,8 +182,9 @@ runs:
       if: ${{ runner.os == 'macOS' }}
       shell: bash
       run: |
-        git clone --branch 2025.12.12 --single-branch https://github.com/microsoft/vcpkg.git vcpkg_microsoft
-        cd vcpkg_microsoft
+        cd ..
+        git clone --branch 2025.12.12 --single-branch https://github.com/microsoft/vcpkg.git
+        cd vcpkg
         ./bootstrap-vcpkg.sh -disableMetrics
         VCPKG_ROOT="$(pwd)"
         echo "VCPKG_ROOT=$VCPKG_ROOT" >> "$GITHUB_ENV"
