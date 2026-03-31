@@ -367,6 +367,12 @@ jobs:
         working-directory: ${{ env.WORKDIR }}
         run: bare-make install
 
+      - name: Remove static libraries from packaged prebuilds
+        shell: bash
+        working-directory: ${{ env.WORKDIR }}
+        run: |
+          find prebuilds -type f -name "*.a" -delete
+
       - name: Strip and verify outputs
         uses: ./.github/actions/strip-and-verify
         with:
