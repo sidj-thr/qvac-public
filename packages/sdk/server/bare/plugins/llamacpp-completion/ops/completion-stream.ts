@@ -160,7 +160,7 @@ type HistoryMsg = {
   attachments?: { path: string }[] | undefined;
 }
 
-function historyWithAssistantFirst (history: HistoryMsg[]): HistoryMsg[] {
+function lastMessagesWithAssistantFirst (history: HistoryMsg[]): HistoryMsg[] {
   const userMsg = history[history.length - 1] as HistoryMsg
   const lastMessages = [userMsg]
   const prevLLMMsg = history[history.length - 2]
@@ -204,7 +204,7 @@ function prepareMessagesForCache(
   if (cacheExists && history.length > 0) {
     const userMsg = history[history.length - 1] as HistoryMsg
     const lastMessages = toolsMode === ToolsModeType.dynamic
-      ? historyWithAssistantFirst(history)
+      ? lastMessagesWithAssistantFirst(history)
       : [userMsg]
     const lastTransformedMessages = transformMessages(lastMessages);
     return [
