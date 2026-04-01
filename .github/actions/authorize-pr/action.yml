@@ -30,11 +30,17 @@ runs:
     # -----------------------------------------------------------------
     - name: Check actor write permission
       id: perm
-      uses: scherermichael-oss/action-has-permission@136e061bfe093832d87f090dd768e14e27a740d3 # 1.0.6
-      with:
-        required-permission: write
+      shell: bash
       env:
-        GITHUB_TOKEN: ${{ inputs.github-token }}
+        GH_TOKEN: ${{ inputs.github-token }}
+      run: |
+        HTTP_CODE=$(gh api "repos/${{ github.repository }}/collaborators/${{ github.actor }}/permission" \
+          --jq '.permission' 2>/dev/null) || true
+        if [[ "$HTTP_CODE" =~ ^(write|admin|maintain)$ ]]; then
+          echo "has-permission=1" >> "$GITHUB_OUTPUT"
+        else
+          echo "has-permission=0" >> "$GITHUB_OUTPUT"
+        fi
 
     # -----------------------------------------------------------------
     # 2. Decide whether the run is authorized
