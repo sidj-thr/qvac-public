@@ -171,7 +171,7 @@ jobs:
           DEST="models/unit-test"
           mkdir -p "$DEST"
 
-          echo "$MODEL_SPECS" | jq -r '.[]' | while IFS= read -r spec; do
+          echo "$MODEL_SPECS" | tr -d '[]"' | tr ',' '\n' | sed 's/^[[:space:]]*//' | sed '/^$/d' | while IFS= read -r spec; do
             if [[ "$spec" == *'*'* ]]; then
               count="${spec##*\*}"
               rest="${spec%%\**}"
