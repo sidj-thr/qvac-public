@@ -17,10 +17,16 @@ on:
       - ".github/workflows/*embed*.yml"
   workflow_dispatch:
 
+  workflow_call:
+
 permissions:
   contents: read
   pull-requests: read
   packages: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.sha }}
+  cancel-in-progress: true
 
 jobs:
   authorize:
@@ -39,6 +45,47 @@ jobs:
         with:
           github-token: ${{ github.token }}
 
+  context:
+    needs: authorize
+    if: needs.authorize.outputs.allowed == 'true'
+    name: Resolve Context
+    runs-on: ubuntu-latest
+    outputs:
+      base_sha: ${{ steps.ctx.outputs.base_sha }}
+      head_sha: ${{ steps.ctx.outputs.head_sha }}
+    steps:
+      - name: Checkout
+        if: github.event_name == 'workflow_dispatch' || github.event_name == 'workflow_call'
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # 6.0.2
+        with:
+          fetch-depth: 0
+      - name: Resolve SHAs
+        id: ctx
+        shell: bash
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+          SHA: ${{ github.sha }}
+        run: |
+          set -euo pipefail
+
+          if [[ "$EVENT_NAME" == "workflow_dispatch" || "$EVENT_NAME" == "workflow_call" ]]; then
+            base_sha=$(git merge-base origin/main HEAD)
+            head_sha="$SHA"
+          else
+            base_sha="$BASE_SHA"
+            head_sha="$HEAD_SHA"
+          fi
+
+          echo "base_sha=$base_sha" >> "$GITHUB_OUTPUT"
+          echo "head_sha=$head_sha" >> "$GITHUB_OUTPUT"
+
+          echo "Resolved:"
+          echo "  event=$EVENT_NAME"
+          echo "  base_sha=$base_sha"
+          echo "  head_sha=$head_sha"
+
   sanity-checks:
     if: needs.authorize.outputs.allowed == 'true'
     needs: authorize
@@ -56,34 +103,32 @@ jobs:
 
   cpp-lint:
     if: needs.authorize.outputs.allowed == 'true'
-    needs: authorize
+    needs: [authorize, context]
     uses: tetherto/qvac-devops/.github/workflows/cpp-lint.yaml@v1.1.7
     secrets: inherit
     with:
-      sha: ${{ github.event.pull_request.base.sha }}
-      pr_head_sha: ${{ github.event.pull_request.head.sha }}
+      sha: ${{ needs.context.outputs.base_sha }}
+      pr_head_sha: ${{ needs.context.outputs.head_sha }}
       workdir: packages/qvac-lib-infer-llamacpp-embed
 
   cpp-tests:
-    permissions:
-      contents: read
-      packages: read
-      pull-requests: write
     if: needs.authorize.outputs.allowed == 'true'
     needs: [authorize, sanity-checks]
-<<<<<<< Updated upstream
-    uses: ./.github/workflows/cpp-tests-embed.yml
-    secrets: inherit
-=======
     uses: ./.github/workflows/_reusable-cpp-tests-addon.yml
     secrets:
       NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
       PAT_TOKEN: ${{ secrets.PAT_TOKEN }}
->>>>>>> Stashed changes
+      AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+      AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+      MODEL_S3_BUCKET: ${{ secrets.MODEL_S3_BUCKET }}
     with:
       workdir: packages/qvac-lib-infer-llamacpp-embed
       repository: ${{ github.event.pull_request.head.repo.full_name }}
       ref: ${{ github.event.pull_request.head.ref }}
+      test_models: >-
+        [
+          "unsloth/embeddinggemma-300m-GGUF/embeddinggemma-300M-Q8_0.gguf=test-model.gguf"
+        ]
 
   ts-checks:
     if: needs.authorize.outputs.allowed == 'true'
@@ -123,10 +168,6 @@ jobs:
       pull-requests: write
     if: needs.authorize.outputs.allowed == 'true'
     needs: [authorize, sanity-checks]
-<<<<<<< Updated upstream
-    uses: ./.github/workflows/prebuilds-qvac-lib-infer-llamacpp-embed.yml
-    secrets: inherit
-=======
     uses: ./.github/workflows/_reusable-prebuilds-addon.yml
     secrets:
       AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
@@ -134,7 +175,6 @@ jobs:
       MODEL_S3_BUCKET: ${{ secrets.MODEL_S3_BUCKET }}
       NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
       PAT_TOKEN: ${{ secrets.PAT_TOKEN }}
->>>>>>> Stashed changes
     with:
       package_slug: qvac-lib-infer-llamacpp-embed
       workdir: packages/qvac-lib-infer-llamacpp-embed
