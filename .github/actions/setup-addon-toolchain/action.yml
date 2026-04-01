@@ -183,7 +183,7 @@ runs:
       shell: bash
       run: |
         cd ..
-        git clone --branch 2025.12.12 --single-branch https://github.com/microsoft/vcpkg.git
+        git clone https://github.com/microsoft/vcpkg.git
         cd vcpkg
         ./bootstrap-vcpkg.sh -disableMetrics
         VCPKG_ROOT="$(pwd)"
@@ -206,7 +206,20 @@ runs:
     - name: Configure vcpkg on Windows
       if: ${{ runner.os == 'Windows' }}
       shell: powershell
-      run: echo ("VCPKG_ROOT=$env:VCPKG_INSTALLATION_ROOT" -replace '\\', '/') >> $env:GITHUB_ENV
+      run: |
+        if ($env:VCPKG_INSTALLATION_ROOT -and (Test-Path $env:VCPKG_INSTALLATION_ROOT)) {
+          $root = $env:VCPKG_INSTALLATION_ROOT -replace '\\', '/'
+          echo "VCPKG_ROOT=$root" >> $env:GITHUB_ENV
+        } else {
+          Push-Location ..
+          git clone https://github.com/microsoft/vcpkg.git
+          Set-Location vcpkg
+          .\bootstrap-vcpkg.bat -disableMetrics
+          $root = (Get-Location).Path -replace '\\', '/'
+          echo "VCPKG_ROOT=$root" >> $env:GITHUB_ENV
+          echo "$root" >> $env:GITHUB_PATH
+          Pop-Location
+        }
 
     - name: Select Xcode version
       if: ${{ runner.os == 'macOS' && inputs.xcode-version != '' }}

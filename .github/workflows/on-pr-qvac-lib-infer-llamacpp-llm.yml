@@ -111,6 +111,9 @@ jobs:
     secrets:
       NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
       PAT_TOKEN: ${{ secrets.PAT_TOKEN }}
+      AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+      AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+      MODEL_S3_BUCKET: ${{ secrets.MODEL_S3_BUCKET }}
     with:
       workdir: packages/qvac-lib-infer-llamacpp-llm
       repository: ${{ github.event.pull_request.head.repo.full_name }}
