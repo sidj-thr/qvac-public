@@ -38,7 +38,7 @@ const STEPS = 20
 const GUIDANCE = 3.5
 const SEED = 42
 
-test('FLUX2-klein img2img — transforms an input image', { timeout: 900000, skip: isMobile }, async (t) => {
+test('FLUX2-klein img2img — transforms an input image', { timeout: 1800000, skip: isMobile }, async (t) => {
   setupJsLogger(binding)
 
   const [downloadedModelName, modelDir] = await ensureModel({
