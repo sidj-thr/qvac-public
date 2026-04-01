@@ -72,7 +72,6 @@
     "typescript": "^5.9.2"
   },
   "dependencies": {
-    "@qvac/dl-filesystem": "file:../qvac-lib-dl-filesystem",
     "@qvac/infer-base": "^0.2.2",
     "bare-fs": "^4.5.1",
     "bare-path": "^3.0.0",

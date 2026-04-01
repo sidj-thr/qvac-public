@@ -14,14 +14,11 @@ This downloads ~6.7 GB of models (FLUX2-klein, Qwen3 text encoder, VAE).
 
 ```javascript
 const ImgStableDiffusion = require('@qvac/lib-infer-diffusion')
-const FilesystemDL = require('@qvac/dl-filesystem')
 const fs = require('bare-fs')
 
-// 1. Setup loader and model
-const loader = new FilesystemDL({ dirPath: './models' })
+// 1. Setup model
 const model = new ImgStableDiffusion(
   {
-    loader,
     diskPath: './models',
     modelName: 'flux-2-klein-4b-Q8_0.gguf',
     llmModel: 'Qwen3-4B-Q4_K_M.gguf',
@@ -58,7 +55,6 @@ await response.onUpdate((data) => {
 
 // 6. Cleanup
 await model.unload()
-await loader.close()
 ```
 
 ## Parameters

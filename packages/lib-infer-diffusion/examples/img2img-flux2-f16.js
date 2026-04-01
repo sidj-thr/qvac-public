@@ -2,7 +2,6 @@
 
 const fs = require('bare-fs')
 const path = require('bare-path')
-const FilesystemDL = require('@qvac/dl-filesystem')
 const ImgStableDiffusion = require('../index')
 
 /**
@@ -24,11 +23,8 @@ async function main () {
 
   console.log('Loading FLUX2-klein F16 model (full precision)...')
 
-  const loader = new FilesystemDL({ dirPath: modelDir })
-
   const model = new ImgStableDiffusion(
     {
-      loader,
       logger: console,
       diskPath: modelDir,
       modelName: 'flux-2-klein-4b-F16.gguf', // F16 full precision
@@ -109,7 +105,6 @@ async function main () {
     console.error('Error:', error)
   } finally {
     await model.unload()
-    await loader.close()
   }
 }
 
