@@ -48,6 +48,47 @@ jobs:
         with:
           github-token: ${{ github.token }}
 
+  context:
+    needs: authorize
+    if: needs.authorize.outputs.allowed == 'true'
+    name: Resolve Context
+    runs-on: ubuntu-latest
+    outputs:
+      base_sha: ${{ steps.ctx.outputs.base_sha }}
+      head_sha: ${{ steps.ctx.outputs.head_sha }}
+    steps:
+      - name: Checkout
+        if: github.event_name == 'workflow_dispatch' || github.event_name == 'workflow_call'
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # 6.0.2
+        with:
+          fetch-depth: 0
+      - name: Resolve SHAs
+        id: ctx
+        shell: bash
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+          SHA: ${{ github.sha }}
+        run: |
+          set -euo pipefail
+
+          if [[ "$EVENT_NAME" == "workflow_dispatch" || "$EVENT_NAME" == "workflow_call" ]]; then
+            base_sha=$(git merge-base origin/main HEAD)
+            head_sha="$SHA"
+          else
+            base_sha="$BASE_SHA"
+            head_sha="$HEAD_SHA"
+          fi
+
+          echo "base_sha=$base_sha" >> "$GITHUB_OUTPUT"
+          echo "head_sha=$head_sha" >> "$GITHUB_OUTPUT"
+
+          echo "Resolved:"
+          echo "  event=$EVENT_NAME"
+          echo "  base_sha=$base_sha"
+          echo "  head_sha=$head_sha"
+
   sanity-checks:
     if: needs.authorize.outputs.allowed == 'true'
     needs: authorize
@@ -78,11 +119,11 @@ jobs:
   cpp-lint:
     if: needs.authorize.outputs.allowed == 'true'
     uses: tetherto/qvac-devops/.github/workflows/cpp-lint.yaml@v1.1.7
-    needs: authorize
+    needs: [authorize, context]
     secrets: inherit
     with:
-      sha: ${{ github.event.pull_request.base.sha }}
-      pr_head_sha: ${{ github.event.pull_request.head.sha }}
+      sha: ${{ needs.context.outputs.base_sha }}
+      pr_head_sha: ${{ needs.context.outputs.head_sha }}
       workdir: packages/qvac-lib-infer-llamacpp-llm
 
   ts-checks:
