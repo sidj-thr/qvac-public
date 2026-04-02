@@ -215,6 +215,15 @@ void TextLlmContext::tokenizeChat(
 
   QLOG_IF(
       Priority::DEBUG,
+      string_format("[TextLlm] tokenizeChat: nPast=%d lastRole=%s "
+                     "nMsgs=%zu nTools=%zu addGenPrompt=%d\n",
+                     nPast_,
+                     chatMsgs.empty() ? "empty"
+                                      : chatMsgs.back().role.c_str(),
+                     chatMsgs.size(), tools.size(),
+                     inputs.add_generation_prompt));
+  QLOG_IF(
+      Priority::DEBUG,
       string_format("[TextLlm] formatted prompt: %s\n", prompt.c_str()));
 
   if (!prompt.empty()) {
