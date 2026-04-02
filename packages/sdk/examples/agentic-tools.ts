@@ -615,6 +615,64 @@ const scenarios: Scenario[] = [
       return { passed: true, detail: `answer_len=${cleanAnswer.length}, gen=${round2Stats?.generatedTokens}` }
     },
   },
+  {
+    name: "Context sliding during chain",
+    description: "Small context (512) → chain fills context → sliding fires → chain still works",
+    async run(_modelId, kvCache, verbose) {
+      // Load a separate model with small context to force sliding
+      console.log("  Loading small-context model (512)...")
+      const smallModelId = await loadModel({
+        modelSrc: QWEN3_1_7B_INST_Q4,
+        modelType: "llm",
+        modelConfig: {
+          ctx_size: 768,
+          predict: -1,
+          n_discarded: 100,
+          tools: true,
+          toolsMode: "dynamic",
+        },
+        onProgress: (p) => process.stdout.write(`\r  ${p.percentage.toFixed(0)}%`),
+      })
+      console.log(`\n  Small model loaded: ${smallModelId}`)
+
+      try {
+        // Use a verbose prompt + tools to fill context quickly
+        const history = [
+          { role: "system", content: "You are a helpful research assistant. You MUST use the get_weather tool to check weather. Use search_web to find information. Do not skip steps." },
+          { role: "user", content: "I want to know the current weather in the hometown of the CEO of Nexora Technologies. Search for the CEO first, then search for their hometown, then use the weather tool." },
+        ]
+        const result = await agenticTurn(smallModelId, history, [weatherTool, searchTool], kvCache + "-slide", 5, verbose)
+        const s = result.roundStats
+
+        // Check that sliding occurred in at least one round
+        const totalSlides = s.reduce((sum, r) => sum + r.contextSlides, 0)
+        console.log(`  Total context slides: ${totalSlides}`)
+        assert(totalSlides > 0, `context sliding should occur with 768 ctx, got ${totalSlides} slides`)
+
+        // The chain should still complete (model produces a final answer)
+        assert(result.answer.length > 0, "should produce a final answer despite sliding")
+        assert(result.rounds >= 2, `should have at least 2 rounds, got ${result.rounds}`)
+        assert(result.toolCalls.length > 0, "should have called at least one tool")
+
+        // Anchor should be set on first round and adjusted by sliding
+        const firstAnchor = firstStat(s).nPastBeforeTools
+        assert(firstAnchor > 0, `nPastBeforeTools should be > 0, got ${firstAnchor}`)
+
+        // After sliding, anchor should be smaller than the original
+        const last = lastStat(s)
+        assert(last.nPastBeforeTools > 0, `final nPastBeforeTools should be > 0, got ${last.nPastBeforeTools}`)
+        assert(last.nPastBeforeTools <= firstAnchor, `anchor should shrink or stay after sliding: first=${firstAnchor}, last=${last.nPastBeforeTools}`)
+
+        // Final round should trim, cache drops to adjusted anchor
+        assert(last.toolsTrimmed, "final round should trim tools")
+        assert(last.cacheTokens === last.nPastBeforeTools, `final cache ${last.cacheTokens} should equal adjusted anchor ${last.nPastBeforeTools}`)
+
+        return { passed: true, detail: `slides=${totalSlides}, rounds=${result.rounds}, anchor=${firstAnchor}->${last.nPastBeforeTools}, tools=${result.toolCalls.map((t) => t.name).join(",")}` }
+      } finally {
+        await unloadModel({ modelId: smallModelId, clearStorage: false })
+      }
+    },
+  },
 ]
 
 // ─── Main ────────────────────────────────────────────────────────────────────
