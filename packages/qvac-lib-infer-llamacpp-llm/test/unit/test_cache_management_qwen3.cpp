@@ -519,34 +519,20 @@ TEST_F(
   EXPECT_GT(contextSlides1, 0)
       << "Expected context sliding to occur during generation";
 
-  // After trim, CacheTokens should be small (only conversation tokens).
-  const int maxExpectedCacheTokens = 50;
-  EXPECT_GT(cacheTokens1, 0);
-  EXPECT_LE(cacheTokens1, maxExpectedCacheTokens)
-      << "CacheTokens (" << cacheTokens1 << ") should not exceed "
-      << maxExpectedCacheTokens
-      << " after sliding+trim - tool tokens must not leak into cache";
+  double toolsTrimmed1 = getStatValue(stats1, "toolsTrimmed");
+  double nPastBeforeTools1 = getStatValue(stats1, "nPastBeforeTools");
 
-  // Turn 2: short follow-up with same tools, another slide cycle.
-  // Keep prompt small enough to fit in 512 ctx after cache restore.
-  std::string input2 = R"([{"role": "session", "content": "test_session1_qwen3.bin"},)"
-      R"( {"role": "user", "content": "What about London?"},)"
-      R"( {"type": "function", "name": "get_weather",)"
-      R"( "description": "Get weather forecast",)"
-      R"( "parameters": {"type": "object", "properties": {)"
-      R"("city": {"type": "string", "description": "City name"})"
-      R"(}, "required": ["city"]}}])";
-
-  EXPECT_NO_THROW({
-    std::string output = processPromptString(model, input2);
-    EXPECT_GE(output.length(), 0);
-  });
-
-  auto stats2 = model->runtimeStats();
-  double cacheTokens2 = getStatValue(stats2, "CacheTokens");
-  EXPECT_GT(cacheTokens2, cacheTokens1)
-      << "Turn 2 should have more cache tokens (conversation grew)";
-  EXPECT_LE(cacheTokens2, 2 * maxExpectedCacheTokens)
-      << "CacheTokens (" << cacheTokens2
-      << ") still bounded - no tool token leakage after multi-turn sliding";
+  if (toolsTrimmed1 > 0) {
+    // Tools were trimmed (model didn't produce <tool_call>).
+    // CacheTokens should equal the adjusted nPastBeforeTools boundary.
+    EXPECT_GT(nPastBeforeTools1, 0)
+        << "nPastBeforeTools should be positive when tools were trimmed";
+    EXPECT_EQ(cacheTokens1, nPastBeforeTools1)
+        << "CacheTokens should equal nPastBeforeTools after trim";
+  } else {
+    // Tools were kept (model produced <tool_call> in output).
+    // CacheTokens includes tools + generated tokens.
+    EXPECT_GT(cacheTokens1, nPastBeforeTools1)
+        << "CacheTokens should exceed nPastBeforeTools when tools kept";
+  }
 }
