@@ -190,6 +190,7 @@ function prepareMessagesForCache(
   cacheExists: boolean,
   history: HistoryMsg[],
   tools?: Tool[],
+  toolsMode?: string
 ): ChatHistory[] {
   const addTools = tools?.length ? transformMessages(tools) : [];
   if (cacheExists && history.length > 0) {
@@ -205,6 +206,13 @@ function prepareMessagesForCache(
         } else {
           break;
         }
+      }
+    } else if (toolsMode === ToolsModeType.dynamic) {
+      const prevMsg = history[history.length - 2]
+      if (prevMsg?.role === 'assistant') {
+        lastMessages = [prevMsg, lastMsg];
+      } else {
+        lastMessages = [lastMsg];
       }
     } else {
       lastMessages = [lastMsg];
@@ -372,6 +380,7 @@ export async function* completion(
         cacheExists,
         history,
         dynamicTools ? tools : undefined,
+        toolsMode,
       );
       logMessagesToAddon(messagesToSend, "PROMPT_SEND");
 
@@ -420,6 +429,7 @@ export async function* completion(
         cacheExists,
         history,
         dynamicTools ? tools : undefined,
+        toolsMode,
       );
       logMessagesToAddon(messagesToSend, "PROMPT_SEND");
 
