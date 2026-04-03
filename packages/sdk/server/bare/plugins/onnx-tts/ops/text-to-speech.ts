@@ -30,14 +30,14 @@ export async function* textToSpeech(
     }
 
     const modelExecutionMs = nowMs() - modelStart;
+    const resolvedSampleRate = lastSampleRate ?? response.stats?.sampleRate;
     const stats: TtsStats = {
       ...(response.stats?.audioDurationMs !== undefined && { audioDuration: response.stats.audioDurationMs }),
       ...(response.stats?.totalSamples !== undefined && { totalSamples: response.stats.totalSamples }),
-      ...(response.stats?.sampleRate !== undefined && { sampleRate: response.stats.sampleRate }),
-      ...(lastSampleRate !== undefined && { sampleRate: lastSampleRate }),
+      ...(resolvedSampleRate !== undefined && { sampleRate: resolvedSampleRate }),
     };
 
-    yield { buffer: completeBuffer, ...(lastSampleRate !== undefined && { sampleRate: lastSampleRate }) };
+    yield { buffer: completeBuffer, ...(resolvedSampleRate !== undefined && { sampleRate: resolvedSampleRate }) };
     return buildStreamResult(modelExecutionMs, hasDefinedValues(stats) ? stats : undefined);
   }
 
@@ -47,11 +47,11 @@ export async function* textToSpeech(
   }
 
   const modelExecutionMs = nowMs() - modelStart;
+  const resolvedSampleRate = lastSampleRate ?? response.stats?.sampleRate;
   const stats: TtsStats = {
     ...(response.stats?.audioDurationMs !== undefined && { audioDuration: response.stats.audioDurationMs }),
     ...(response.stats?.totalSamples !== undefined && { totalSamples: response.stats.totalSamples }),
-    ...(response.stats?.sampleRate !== undefined && { sampleRate: response.stats.sampleRate }),
-    ...(lastSampleRate !== undefined && { sampleRate: lastSampleRate }),
+    ...(resolvedSampleRate !== undefined && { sampleRate: resolvedSampleRate }),
   };
 
   return buildStreamResult(modelExecutionMs, hasDefinedValues(stats) ? stats : undefined);

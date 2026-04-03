@@ -11,12 +11,15 @@ export const TTS_LANGUAGES = [
 
 const ttsLanguageSchema = z.enum(TTS_LANGUAGES);
 
-export const lavaSREnhancerConfigSchema = z.object({
+const ttsEnhancerRuntimeSchema = z.object({
   type: z.literal("lavasr"),
   enhance: z.boolean().optional(),
   denoise: z.boolean().optional(),
-  backboneSrc: modelSrcInputSchema.optional(),
-  specHeadSrc: modelSrcInputSchema.optional(),
+});
+
+export const lavaSREnhancerConfigSchema = ttsEnhancerRuntimeSchema.extend({
+  backboneSrc: modelSrcInputSchema,
+  specHeadSrc: modelSrcInputSchema,
   denoiserSrc: modelSrcInputSchema.optional(),
 });
 
@@ -28,13 +31,7 @@ export const ttsChatterboxRuntimeConfigSchema = z.object({
   ttsEngine: z.literal("chatterbox"),
   language: ttsLanguageSchema,
   outputSampleRate: z.number().int().min(8000).max(192000).optional(),
-  enhancer: z
-    .object({
-      type: z.literal("lavasr"),
-      enhance: z.boolean().optional(),
-      denoise: z.boolean().optional(),
-    })
-    .optional(),
+  enhancer: ttsEnhancerRuntimeSchema.optional(),
 });
 
 export const ttsSupertonicRuntimeConfigSchema = z.object({
@@ -43,13 +40,7 @@ export const ttsSupertonicRuntimeConfigSchema = z.object({
   ttsSpeed: z.number().optional(),
   ttsNumInferenceSteps: z.number().optional(),
   outputSampleRate: z.number().int().min(8000).max(192000).optional(),
-  enhancer: z
-    .object({
-      type: z.literal("lavasr"),
-      enhance: z.boolean().optional(),
-      denoise: z.boolean().optional(),
-    })
-    .optional(),
+  enhancer: ttsEnhancerRuntimeSchema.optional(),
 });
 
 export const ttsRuntimeConfigSchema = z.union([
@@ -81,19 +72,13 @@ export const ttsConfigSchema = z.union([
   ttsSupertonicConfigSchema,
 ]);
 
-const ttsEnhancerPerRequestSchema = z.object({
-  type: z.literal("lavasr"),
-  enhance: z.boolean().optional(),
-  denoise: z.boolean().optional(),
-});
-
 export const ttsClientParamsSchema = z.object({
   modelId: z.string(),
   inputType: z.string().default("text"),
   text: z.string().trim().min(1, "text must not be empty or whitespace-only"),
   stream: z.boolean().default(true),
   outputSampleRate: z.number().int().min(8000).max(192000).optional(),
-  enhancer: ttsEnhancerPerRequestSchema.optional(),
+  enhancer: ttsEnhancerRuntimeSchema.optional(),
 });
 
 export const ttsRequestSchema = ttsClientParamsSchema.extend({

@@ -37,18 +37,19 @@ async function resolveEnhancerArtifacts(
   const paths: Record<string, string> = {};
   const promises: Promise<void>[] = [];
 
-  if (enhancer.backboneSrc) {
-    promises.push(resolve(enhancer.backboneSrc).then((p) => { paths["enhancerBackbonePath"] = path.resolve(p); }));
-  }
-  if (enhancer.specHeadSrc) {
-    promises.push(resolve(enhancer.specHeadSrc).then((p) => { paths["enhancerSpecHeadPath"] = path.resolve(p); }));
-  }
+  promises.push(resolve(enhancer.backboneSrc).then((p) => { paths["enhancerBackbonePath"] = path.resolve(p); }));
+  promises.push(resolve(enhancer.specHeadSrc).then((p) => { paths["enhancerSpecHeadPath"] = path.resolve(p); }));
   if (enhancer.denoiserSrc) {
     promises.push(resolve(enhancer.denoiserSrc).then((p) => { paths["denoiserPath"] = path.resolve(p); }));
   }
 
   await Promise.all(promises);
   return paths;
+}
+
+function buildRuntimeEnhancer(enhancer: TtsEnhancerConfig | undefined) {
+  if (!enhancer || enhancer.type !== "lavasr") return undefined;
+  return { type: enhancer.type, enhance: enhancer.enhance, denoise: enhancer.denoise };
 }
 
 function buildEnhancerArg(
@@ -61,9 +62,9 @@ function buildEnhancerArg(
     type: "lavasr" as const,
     ...(enhancer.enhance !== undefined && { enhance: enhancer.enhance }),
     ...(enhancer.denoise !== undefined && { denoise: enhancer.denoise }),
-    ...(artifacts["enhancerBackbonePath"] && { backbonePath: artifacts["enhancerBackbonePath"] }),
-    ...(artifacts["enhancerSpecHeadPath"] && { specHeadPath: artifacts["enhancerSpecHeadPath"] }),
-    ...(artifacts["denoiserPath"] && { denoiserPath: artifacts["denoiserPath"] }),
+    ...(artifacts["enhancerBackbonePath"] !== undefined && { backbonePath: artifacts["enhancerBackbonePath"] }),
+    ...(artifacts["enhancerSpecHeadPath"] !== undefined && { specHeadPath: artifacts["enhancerSpecHeadPath"] }),
+    ...(artifacts["denoiserPath"] !== undefined && { denoiserPath: artifacts["denoiserPath"] }),
   };
 }
 
@@ -114,10 +115,7 @@ async function resolveChatterboxConfig(
   ]);
 
   const enhancerArtifacts = await resolveEnhancerArtifacts(enhancer, resolve);
-
-  const runtimeEnhancer = enhancer
-    ? { type: enhancer.type as "lavasr", enhance: enhancer.enhance, denoise: enhancer.denoise }
-    : undefined;
+  const runtimeEnhancer = buildRuntimeEnhancer(enhancer);
 
   return {
     config: {
@@ -181,10 +179,7 @@ async function resolveSupertonicConfig(
   ]);
 
   const enhancerArtifacts = await resolveEnhancerArtifacts(enhancer, resolve);
-
-  const runtimeEnhancer = enhancer
-    ? { type: enhancer.type as "lavasr", enhance: enhancer.enhance, denoise: enhancer.denoise }
-    : undefined;
+  const runtimeEnhancer = buildRuntimeEnhancer(enhancer);
 
   return {
     config: {
@@ -234,7 +229,8 @@ function createChatterboxModel(
   const logger = createStreamLogger(modelId, ModelType.onnxTts);
   registerAddonLogger(modelId, ModelType.onnxTts, logger);
   const referenceAudio = loadReferenceAudioAt24k(referenceAudioPath);
-  const args: Record<string, unknown> = {
+  const enhancerArg = buildEnhancerArg(config.enhancer, artifacts);
+  const args = {
     tokenizerPath,
     speechEncoderPath,
     embedTokensPath,
@@ -243,11 +239,9 @@ function createChatterboxModel(
     referenceAudio,
     logger,
     opts: { stats: true },
+    ...(config.outputSampleRate !== undefined && { outputSampleRate: config.outputSampleRate }),
+    ...(enhancerArg && { enhancer: enhancerArg }),
   };
-
-  if (config.outputSampleRate !== undefined) args["outputSampleRate"] = config.outputSampleRate;
-  const enhancerArg = buildEnhancerArg(config.enhancer, artifacts);
-  if (enhancerArg) args["enhancer"] = enhancerArg;
 
   const modelConfig = { language: config.language ?? "en", useGPU: false };
   const model = new ONNXTTS(args as never, modelConfig);
@@ -279,7 +273,8 @@ function createSupertonicModel(
   registerAddonLogger(modelId, ModelType.onnxTts, logger);
   const voicesDir = path.dirname(voicePath);
   const voiceName = path.basename(voicePath).replace(/\.bin$/i, "") || "voice";
-  const args: Record<string, unknown> = {
+  const enhancerArg = buildEnhancerArg(config.enhancer, artifacts);
+  const args = {
     tokenizerPath,
     textEncoderPath,
     latentDenoiserPath,
@@ -290,11 +285,9 @@ function createSupertonicModel(
     numInferenceSteps: config.ttsNumInferenceSteps ?? 5,
     logger,
     opts: { stats: true },
+    ...(config.outputSampleRate !== undefined && { outputSampleRate: config.outputSampleRate }),
+    ...(enhancerArg && { enhancer: enhancerArg }),
   };
-
-  if (config.outputSampleRate !== undefined) args["outputSampleRate"] = config.outputSampleRate;
-  const enhancerArg = buildEnhancerArg(config.enhancer, artifacts);
-  if (enhancerArg) args["enhancer"] = enhancerArg;
 
   const modelConfig = { language: config.language ?? "en" };
   const model = new ONNXTTS(args as never, modelConfig);
@@ -358,6 +351,7 @@ export const ttsPlugin = definePlugin({
             buffer: [],
             done: true,
             ...(stats && { stats }),
+            ...(stats?.sampleRate !== undefined && { sampleRate: stats.sampleRate }),
           }, modelExecutionMs);
         } finally {
           await stream.return?.(undefined as never);

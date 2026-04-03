@@ -38,18 +38,23 @@ export function textToSpeech(
   if (params.stream) {
     const bufferStream = (async function* () {
       let lastSampleRate: number | undefined;
-      for await (const response of streamRpc(request, options)) {
-        if (response.type === "textToSpeech") {
-          const streamResponse = ttsResponseSchema.parse(response);
-          if (streamResponse.sampleRate !== undefined) lastSampleRate = streamResponse.sampleRate;
-          if (streamResponse.buffer.length > 0) {
-            yield* streamResponse.buffer;
-          }
-          if (streamResponse.done) {
-            sampleRateResolver(lastSampleRate ?? streamResponse.stats?.sampleRate);
-            doneResolver(true);
+      try {
+        for await (const response of streamRpc(request, options)) {
+          if (response.type === "textToSpeech") {
+            const streamResponse = ttsResponseSchema.parse(response);
+            if (streamResponse.sampleRate !== undefined) lastSampleRate = streamResponse.sampleRate;
+            if (streamResponse.buffer.length > 0) {
+              yield* streamResponse.buffer;
+            }
+            if (streamResponse.done) {
+              sampleRateResolver(lastSampleRate ?? streamResponse.stats?.sampleRate);
+              doneResolver(true);
+            }
           }
         }
+      } finally {
+        sampleRateResolver(lastSampleRate);
+        doneResolver(false);
       }
     })();
 
@@ -67,16 +72,21 @@ export function textToSpeech(
     const bufferPromise = (async () => {
       let buffer: number[] = [];
       let lastSampleRate: number | undefined;
-      for await (const response of streamRpc(request, options)) {
-        if (response.type === "textToSpeech") {
-          const streamResponse = ttsResponseSchema.parse(response);
-          if (streamResponse.sampleRate !== undefined) lastSampleRate = streamResponse.sampleRate;
-          buffer = buffer.concat(streamResponse.buffer);
-          if (streamResponse.done) {
-            sampleRateResolver(lastSampleRate ?? streamResponse.stats?.sampleRate);
-            doneResolver(true);
+      try {
+        for await (const response of streamRpc(request, options)) {
+          if (response.type === "textToSpeech") {
+            const streamResponse = ttsResponseSchema.parse(response);
+            if (streamResponse.sampleRate !== undefined) lastSampleRate = streamResponse.sampleRate;
+            buffer = buffer.concat(streamResponse.buffer);
+            if (streamResponse.done) {
+              sampleRateResolver(lastSampleRate ?? streamResponse.stats?.sampleRate);
+              doneResolver(true);
+            }
           }
         }
+      } finally {
+        sampleRateResolver(lastSampleRate);
+        doneResolver(false);
       }
       return buffer;
     })();
