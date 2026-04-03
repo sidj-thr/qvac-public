@@ -16,7 +16,8 @@ import {
   createWavHeader,
 } from "./utils";
 
-// Chatterbox TTS with LavaSR neural speech enhancement (48kHz output).
+// A/B comparison: Chatterbox TTS with and without LavaSR neural speech enhancement.
+// Produces two WAV files so you can hear the difference.
 // Usage: node chatterbox-enhanced.js <referenceAudioSrc> <enhancerBackbone> <enhancerSpecHead> [denoiserPath]
 const [referenceAudioSrc, backboneSrc, specHeadSrc, denoiserSrc] =
   process.argv.slice(2);
@@ -28,21 +29,70 @@ if (!referenceAudioSrc || !backboneSrc || !specHeadSrc) {
   process.exit(1);
 }
 
+const CHATTERBOX_SAMPLE_RATE = 24000;
 const ENHANCED_SAMPLE_RATE = 48000;
+const SYNTHESIS_TEXT =
+  "Hello! This sentence is synthesized twice, once at standard quality and once with LavaSR neural enhancement, so you can hear the difference.";
+
+const chatterboxConfig = {
+  ttsEngine: "chatterbox" as const,
+  language: "en" as const,
+  ttsTokenizerSrc: TTS_TOKENIZER_EN_CHATTERBOX.src,
+  ttsSpeechEncoderSrc: TTS_SPEECH_ENCODER_EN_CHATTERBOX_FP32.src,
+  ttsEmbedTokensSrc: TTS_EMBED_TOKENS_EN_CHATTERBOX_FP32.src,
+  ttsConditionalDecoderSrc: TTS_CONDITIONAL_DECODER_EN_CHATTERBOX_FP32.src,
+  ttsLanguageModelSrc: TTS_LANGUAGE_MODEL_EN_CHATTERBOX_FP32.src,
+  referenceAudioSrc,
+};
+
+const onProgress = (progress: ModelProgressUpdate) => {
+  console.log(progress);
+};
+
+function saveAndPlay(samples: number[], sampleRate: number, filename: string) {
+  createWav(samples, sampleRate, filename);
+  console.log(`✅ Saved ${filename}`);
+  const audioData = int16ArrayToBuffer(samples);
+  const wavBuffer = Buffer.concat([
+    createWavHeader(audioData.length, sampleRate),
+    audioData,
+  ]);
+  playAudio(wavBuffer);
+}
 
 try {
-  const modelId = await loadModel({
+  // --- Pass 1: Raw Chatterbox (no enhancer) ---
+  console.log("\n━━━ Pass 1: Raw Chatterbox (24 kHz) ━━━\n");
+
+  const rawModelId = await loadModel({
+    modelSrc: TTS_TOKENIZER_EN_CHATTERBOX.src,
+    modelType: "tts",
+    modelConfig: chatterboxConfig,
+    onProgress,
+  });
+
+  const rawResult = textToSpeech({
+    modelId: rawModelId,
+    text: SYNTHESIS_TEXT,
+    inputType: "text",
+    stream: false,
+  });
+
+  const rawBuffer = await rawResult.buffer;
+  console.log(`Raw TTS complete. ${rawBuffer.length} samples @ ${CHATTERBOX_SAMPLE_RATE} Hz`);
+  saveAndPlay(rawBuffer, CHATTERBOX_SAMPLE_RATE, "tts-raw-output.wav");
+
+  await unloadModel({ modelId: rawModelId });
+  console.log("Raw model unloaded.\n");
+
+  // --- Pass 2: Chatterbox + LavaSR enhancement ---
+  console.log("━━━ Pass 2: Chatterbox + LavaSR enhancement (48 kHz) ━━━\n");
+
+  const enhancedModelId = await loadModel({
     modelSrc: TTS_TOKENIZER_EN_CHATTERBOX.src,
     modelType: "tts",
     modelConfig: {
-      ttsEngine: "chatterbox",
-      language: "en",
-      ttsTokenizerSrc: TTS_TOKENIZER_EN_CHATTERBOX.src,
-      ttsSpeechEncoderSrc: TTS_SPEECH_ENCODER_EN_CHATTERBOX_FP32.src,
-      ttsEmbedTokensSrc: TTS_EMBED_TOKENS_EN_CHATTERBOX_FP32.src,
-      ttsConditionalDecoderSrc: TTS_CONDITIONAL_DECODER_EN_CHATTERBOX_FP32.src,
-      ttsLanguageModelSrc: TTS_LANGUAGE_MODEL_EN_CHATTERBOX_FP32.src,
-      referenceAudioSrc,
+      ...chatterboxConfig,
       enhancer: {
         type: "lavasr",
         enhance: true,
@@ -52,39 +102,28 @@ try {
         ...(denoiserSrc ? { denoiserSrc } : {}),
       },
     },
-    onProgress: (progress: ModelProgressUpdate) => {
-      console.log(progress);
-    },
+    onProgress,
   });
 
-  console.log(`Model loaded: ${modelId}`);
-
-  console.log("🎵 Synthesizing with LavaSR enhancement...");
-  const result = textToSpeech({
-    modelId,
-    text: "Hello! This audio was synthesized with Chatterbox and enhanced with LavaSR neural bandwidth extension to 48 kilohertz.",
+  const enhancedResult = textToSpeech({
+    modelId: enhancedModelId,
+    text: SYNTHESIS_TEXT,
     inputType: "text",
     stream: false,
   });
 
-  const audioBuffer = await result.buffer;
-  console.log(`TTS complete. Total samples: ${audioBuffer.length}`);
+  const enhancedBuffer = await enhancedResult.buffer;
+  console.log(`Enhanced TTS complete. ${enhancedBuffer.length} samples @ ${ENHANCED_SAMPLE_RATE} Hz`);
+  saveAndPlay(enhancedBuffer, ENHANCED_SAMPLE_RATE, "tts-enhanced-output.wav");
 
-  console.log("💾 Saving audio to file...");
-  createWav(audioBuffer, ENHANCED_SAMPLE_RATE, "tts-enhanced-output.wav");
-  console.log("✅ Audio saved to tts-enhanced-output.wav");
+  await unloadModel({ modelId: enhancedModelId });
+  console.log("Enhanced model unloaded.");
 
-  console.log("🔊 Playing audio...");
-  const audioData = int16ArrayToBuffer(audioBuffer);
-  const wavBuffer = Buffer.concat([
-    createWavHeader(audioData.length, ENHANCED_SAMPLE_RATE),
-    audioData,
-  ]);
-  playAudio(wavBuffer);
-  console.log("✅ Audio playback complete");
+  console.log("\n━━━ Done ━━━");
+  console.log("Compare the two files:");
+  console.log("  tts-raw-output.wav      — 24 kHz standard Chatterbox");
+  console.log("  tts-enhanced-output.wav — 48 kHz with LavaSR enhancement");
 
-  await unloadModel({ modelId });
-  console.log("Model unloaded");
   process.exit(0);
 } catch (error) {
   console.error("❌ Error:", error);
