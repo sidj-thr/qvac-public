@@ -11,26 +11,33 @@ export const TTS_LANGUAGES = [
 
 const ttsLanguageSchema = z.enum(TTS_LANGUAGES);
 
-const ttsEnhancerRuntimeSchema = z.object({
+const lavaSREnhancerRuntimeSchema = z.object({
   type: z.literal("lavasr"),
   enhance: z.boolean().optional(),
   denoise: z.boolean().optional(),
 });
 
-export const lavaSREnhancerConfigSchema = ttsEnhancerRuntimeSchema.extend({
+const ttsEnhancerRuntimeConfigSchema = z.discriminatedUnion("type", [
+  lavaSREnhancerRuntimeSchema,
+]);
+
+export const lavaSREnhancerConfigSchema = lavaSREnhancerRuntimeSchema.extend({
   backboneSrc: modelSrcInputSchema,
   specHeadSrc: modelSrcInputSchema,
   denoiserSrc: modelSrcInputSchema.optional(),
 });
 
-export const ttsEnhancerConfigSchema = z.discriminatedUnion("type", [
-  lavaSREnhancerConfigSchema,
-]);
+export const ttsEnhancerConfigSchema = z
+  .discriminatedUnion("type", [lavaSREnhancerConfigSchema])
+  .refine(
+    (data) => data.type !== "lavasr" || !data.denoise || data.denoiserSrc !== undefined,
+    { message: "denoiserSrc is required when denoise is true", path: ["denoiserSrc"] },
+  );
 
 export const ttsChatterboxRuntimeConfigSchema = z.object({
   ttsEngine: z.literal("chatterbox"),
   language: ttsLanguageSchema,
-  enhancer: ttsEnhancerRuntimeSchema.optional(),
+  enhancer: ttsEnhancerRuntimeConfigSchema.optional(),
 });
 
 export const ttsSupertonicRuntimeConfigSchema = z.object({
@@ -38,7 +45,7 @@ export const ttsSupertonicRuntimeConfigSchema = z.object({
   language: ttsLanguageSchema,
   ttsSpeed: z.number().optional(),
   ttsNumInferenceSteps: z.number().optional(),
-  enhancer: ttsEnhancerRuntimeSchema.optional(),
+  enhancer: ttsEnhancerRuntimeConfigSchema.optional(),
 });
 
 export const ttsRuntimeConfigSchema = z.union([
@@ -94,7 +101,7 @@ export const ttsResponseSchema = z.object({
 });
 
 export type TtsLanguage = (typeof TTS_LANGUAGES)[number];
-export type TtsEnhancerRuntimeConfig = z.infer<typeof ttsEnhancerRuntimeSchema>;
+export type TtsEnhancerRuntimeConfig = z.infer<typeof ttsEnhancerRuntimeConfigSchema>;
 export type TtsEnhancerConfig = z.infer<typeof ttsEnhancerConfigSchema>;
 export type LavaSREnhancerConfig = z.infer<typeof lavaSREnhancerConfigSchema>;
 export type TtsChatterboxConfig = z.infer<typeof ttsChatterboxConfigSchema>;

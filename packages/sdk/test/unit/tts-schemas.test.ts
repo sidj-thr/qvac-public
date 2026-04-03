@@ -228,3 +228,76 @@ test("ttsSupertonicRuntimeConfigSchema: strips load-time model source fields fro
   t.ok(!keys.includes("backboneSrc"), "backboneSrc should be stripped from runtime config");
   t.ok(!keys.includes("specHeadSrc"), "specHeadSrc should be stripped from runtime config");
 });
+
+// --- ttsEnhancerConfigSchema: denoise/denoiserSrc refinement ---
+
+test("ttsEnhancerConfigSchema: rejects denoise true without denoiserSrc", (t) => {
+  const result = ttsEnhancerConfigSchema.safeParse({
+    type: "lavasr",
+    enhance: true,
+    denoise: true,
+    backboneSrc: "backbone.onnx",
+    specHeadSrc: "spechead.onnx",
+  });
+  t.is(result.success, false);
+});
+
+test("ttsEnhancerConfigSchema: accepts denoise true with denoiserSrc", (t) => {
+  const result = ttsEnhancerConfigSchema.safeParse({
+    type: "lavasr",
+    enhance: true,
+    denoise: true,
+    backboneSrc: "backbone.onnx",
+    specHeadSrc: "spechead.onnx",
+    denoiserSrc: "denoiser.onnx",
+  });
+  t.is(result.success, true);
+});
+
+test("ttsEnhancerConfigSchema: accepts denoise false without denoiserSrc", (t) => {
+  const result = ttsEnhancerConfigSchema.safeParse({
+    type: "lavasr",
+    enhance: true,
+    denoise: false,
+    backboneSrc: "backbone.onnx",
+    specHeadSrc: "spechead.onnx",
+  });
+  t.is(result.success, true);
+});
+
+test("ttsEnhancerConfigSchema: rejects empty object", (t) => {
+  const result = ttsEnhancerConfigSchema.safeParse({});
+  t.is(result.success, false);
+});
+
+test("ttsEnhancerConfigSchema: rejects object without type discriminator", (t) => {
+  const result = ttsEnhancerConfigSchema.safeParse({
+    enhance: true,
+    backboneSrc: "backbone.onnx",
+    specHeadSrc: "spechead.onnx",
+  });
+  t.is(result.success, false);
+});
+
+// --- Load-time config: denoise refinement propagates through parent schemas ---
+
+test("ttsChatterboxConfigSchema: rejects enhancer with denoise true but no denoiserSrc", (t) => {
+  const result = ttsChatterboxConfigSchema.safeParse({
+    ttsEngine: "chatterbox",
+    language: "en",
+    ttsTokenizerSrc: "tok.bin",
+    ttsSpeechEncoderSrc: "enc.onnx",
+    ttsEmbedTokensSrc: "emb.onnx",
+    ttsConditionalDecoderSrc: "dec.onnx",
+    ttsLanguageModelSrc: "lm.onnx",
+    referenceAudioSrc: "ref.wav",
+    enhancer: {
+      type: "lavasr",
+      enhance: true,
+      denoise: true,
+      backboneSrc: "backbone.onnx",
+      specHeadSrc: "spechead.onnx",
+    },
+  });
+  t.is(result.success, false);
+});

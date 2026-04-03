@@ -33,40 +33,55 @@ async function resolveEnhancerArtifacts(
   enhancer: TtsEnhancerConfig | undefined,
   resolve: ResolveContext["resolveModelPath"],
 ) {
-  if (!enhancer || enhancer.type !== "lavasr") return {};
+  if (!enhancer) return {};
 
-  const [enhancerBackbonePath, enhancerSpecHeadPath, denoiserPath] = await Promise.all([
-    resolve(enhancer.backboneSrc),
-    resolve(enhancer.specHeadSrc),
-    enhancer.denoiserSrc ? resolve(enhancer.denoiserSrc) : undefined,
-  ]);
-
-  return {
-    enhancerBackbonePath,
-    enhancerSpecHeadPath,
-    ...(denoiserPath && { denoiserPath }),
-  };
+  switch (enhancer.type) {
+    case "lavasr": {
+      const [enhancerBackbonePath, enhancerSpecHeadPath, denoiserPath] = await Promise.all([
+        resolve(enhancer.backboneSrc),
+        resolve(enhancer.specHeadSrc),
+        enhancer.denoiserSrc ? resolve(enhancer.denoiserSrc) : undefined,
+      ]);
+      return {
+        enhancerBackbonePath,
+        enhancerSpecHeadPath,
+        ...(denoiserPath && { denoiserPath }),
+      };
+    }
+  }
 }
 
 function buildRuntimeEnhancer(enhancer: TtsEnhancerConfig | undefined) {
-  if (!enhancer || enhancer.type !== "lavasr") return undefined;
-  return { type: enhancer.type, enhance: enhancer.enhance, denoise: enhancer.denoise };
+  if (!enhancer) return undefined;
+  switch (enhancer.type) {
+    case "lavasr":
+      return { type: enhancer.type, enhance: enhancer.enhance, denoise: enhancer.denoise };
+  }
 }
 
 function buildEnhancerArg(
   enhancer: TtsEnhancerRuntimeConfig | undefined,
   artifacts: Record<string, string | undefined>,
 ) {
-  if (!enhancer || enhancer.type !== "lavasr") return undefined;
+  if (!enhancer) return undefined;
 
-  return {
-    type: "lavasr" as const,
-    ...(enhancer.enhance !== undefined && { enhance: enhancer.enhance }),
-    ...(enhancer.denoise !== undefined && { denoise: enhancer.denoise }),
-    ...(artifacts["enhancerBackbonePath"] && { backbonePath: artifacts["enhancerBackbonePath"] }),
-    ...(artifacts["enhancerSpecHeadPath"] && { specHeadPath: artifacts["enhancerSpecHeadPath"] }),
-    ...(artifacts["denoiserPath"] && { denoiserPath: artifacts["denoiserPath"] }),
-  };
+  switch (enhancer.type) {
+    case "lavasr": {
+      const backbonePath = artifacts["enhancerBackbonePath"];
+      const specHeadPath = artifacts["enhancerSpecHeadPath"];
+      if (!backbonePath || !specHeadPath) {
+        throw new TtsArtifactsRequiredError();
+      }
+      return {
+        type: "lavasr" as const,
+        ...(enhancer.enhance !== undefined && { enhance: enhancer.enhance }),
+        ...(enhancer.denoise !== undefined && { denoise: enhancer.denoise }),
+        backbonePath,
+        specHeadPath,
+        ...(artifacts["denoiserPath"] && { denoiserPath: artifacts["denoiserPath"] }),
+      };
+    }
+  }
 }
 
 async function resolveChatterboxConfig(
