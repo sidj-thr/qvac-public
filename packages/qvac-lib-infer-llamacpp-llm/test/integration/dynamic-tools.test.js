@@ -1208,18 +1208,17 @@ test('[dynamic-tools][break-it] empty user message with tools', { timeout: 600_0
 // optimization, but forgets to also enable tools='true'.
 // ---------------------------------------------------------------------------
 test('[dynamic-tools][break-it][spec-only] tools_at_end=true with tools=false', { timeout: 600_000 }, async t => {
-  let model, dirPath, loader, releaseLogger
+  let model
 
-  const [modelName, modelDir] = await ensureModel({
+  const [modelName, dirPath] = await ensureModel({
     modelName: QWEN3_MODEL.name,
     downloadUrl: QWEN3_MODEL.url
   })
-  dirPath = modelDir
 
-  loader = new FilesystemDL({ dirPath })
+  const loader = new FilesystemDL({ dirPath })
   const specLogger = attachSpecLogger({ forwardToConsole: true })
   let loggerReleased = false
-  releaseLogger = () => {
+  const releaseLogger = () => {
     if (loggerReleased) return
     loggerReleased = true
     specLogger.release()
