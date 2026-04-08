@@ -147,7 +147,7 @@ jobs:
     environment: release
     steps:
       - name: Run sanity checks
-        uses: tetherto/qvac-devops/.github/actions/sanity-checks@v1.1.7
+        uses: tetherto/qvac-devops/.github/actions/sanity-checks@v1.1.8
         with:
           secret-token: ${{ secrets.GITHUB_TOKEN }}
           npm-token: ${{ secrets.NPM_TOKEN }}
@@ -158,7 +158,7 @@ jobs:
   cpp-lint:
     if: needs.authorize.outputs.allowed == 'true'
     needs: [authorize, context]
-    uses: tetherto/qvac-devops/.github/workflows/cpp-lint.yaml@v1.1.7
+    uses: tetherto/qvac-devops/.github/workflows/cpp-lint.yaml@v1.1.8
     secrets: inherit
     with:
       sha: ${{ needs.context.outputs.base_sha }}
