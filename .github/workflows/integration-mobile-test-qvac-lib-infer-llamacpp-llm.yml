@@ -936,9 +936,9 @@ jobs:
             AUTOMATION="UiAutomator2"
             HOST_LINE="android_test_host: amazon_linux_2"
             BUNDLE_ID="${{ env.APP_BUNDLE_ID }}"
-            # Android wdio config with crash detection (bail:0 = continue on test failures, crash = process.exit)
-            # Increased timeout to 30 minutes (1800000ms) for long-running LLM tests
-            WDIO_CONFIG='exports.config={runner:"local",hostname:"127.0.0.1",port:4723,path:"/wd/hub",specs:["*.spec.js","*.test.js"],maxInstances:1,bail:0,capabilities:[{platformName:"Android","appium:automationName":"UiAutomator2","appium:appPackage":"'${{ env.APP_BUNDLE_ID }}'","appium:appActivity":"'${{ env.APP_BUNDLE_ID }}'.MainActivity","appium:newCommandTimeout":300,"appium:autoGrantPermissions":true,"appium:autoAcceptAlerts":true,"appium:noReset":true,"appium:dontStopAppOnReset":true,"appium:forceAppLaunch":false}],logLevel:"debug",waitforTimeout:120000,connectionRetryTimeout:30000,connectionRetryCount:3,services:[],framework:"mocha",reporters:["spec"],mochaOpts:{ui:"bdd",timeout:1800000},before:async function(capabilities,specs,browser){const BUNDLE_ID="'${{ env.APP_BUNDLE_ID }}'";global.appCrashed=false;global.checkAppCrash=async(stage)=>{try{const state=await browser.queryAppState(BUNDLE_ID);console.log("["+stage+"] App state: "+state+" (4=foreground,3=background,1=not running)");if(state<3){console.error("\\n🛑 APP CRASHED at "+stage+"! State="+state);console.error("Check device logs for BareKit/native errors.\\n");global.appCrashed=true;process.exit(1);}return state;}catch(e){console.log("["+stage+"] queryAppState error: "+e.message);return-1;}};console.log("Checking initial app state...");await global.checkAppCrash("startup");console.log("Waiting for app to initialize...");await browser.pause(5000);await global.checkAppCrash("after-pause");const initText=await browser.$("android=new UiSelector().textContains(\"INITIALIZED\")");await initText.waitForDisplayed({timeout:60000});await global.checkAppCrash("after-init");console.log("App initialized, clicking Run Automated Tests...");const button=await browser.$("android=new UiSelector().textContains(\"Run Automated Tests\")");await button.waitForDisplayed({timeout:15000});await button.click();console.log("Button clicked!");await browser.pause(5000);await global.checkAppCrash("after-click");},afterTest:async function(test,context,{error}){if(global.appCrashed)return;await global.checkAppCrash("after-test:"+test.title);}};'
+            # Android wdio config with crash detection and test filter support
+            # __TEST_FILTER__ placeholder is replaced per-split by make_split()
+            WDIO_CONFIG='exports.config={runner:"local",hostname:"127.0.0.1",port:4723,path:"/wd/hub",specs:["*.spec.js","*.test.js"],maxInstances:1,bail:0,capabilities:[{platformName:"Android","appium:automationName":"UiAutomator2","appium:appPackage":"'${{ env.APP_BUNDLE_ID }}'","appium:appActivity":"'${{ env.APP_BUNDLE_ID }}'.MainActivity","appium:newCommandTimeout":300,"appium:autoGrantPermissions":true,"appium:autoAcceptAlerts":true,"appium:noReset":true,"appium:dontStopAppOnReset":true,"appium:forceAppLaunch":false}],logLevel:"debug",waitforTimeout:120000,connectionRetryTimeout:30000,connectionRetryCount:3,services:[],framework:"mocha",reporters:["spec"],mochaOpts:{ui:"bdd",timeout:1800000},before:async function(capabilities,specs,browser){const BUNDLE_ID="'${{ env.APP_BUNDLE_ID }}'";const TEST_FILTER="__TEST_FILTER__";global.appCrashed=false;global.checkAppCrash=async(stage)=>{try{const state=await browser.queryAppState(BUNDLE_ID);console.log("["+stage+"] App state: "+state+" (4=foreground,3=background,1=not running)");if(state<3){console.error("\\n🛑 APP CRASHED at "+stage+"! State="+state);console.error("Check device logs for BareKit/native errors.\\n");global.appCrashed=true;process.exit(1);}return state;}catch(e){console.log("["+stage+"] queryAppState error: "+e.message);return-1;}};console.log("Checking initial app state...");await global.checkAppCrash("startup");console.log("Waiting for app to initialize...");await browser.pause(5000);await global.checkAppCrash("after-pause");const initText=await browser.$("android=new UiSelector().textContains(\"INITIALIZED\")");await initText.waitForDisplayed({timeout:60000});await global.checkAppCrash("after-init");if(TEST_FILTER!=="__TEST_FILTER__"){try{const b64=Buffer.from(TEST_FILTER).toString("base64");await browser.pushFile("@"+BUNDLE_ID+"/files/testFilter.txt",b64);console.log("Pushed test filter: "+TEST_FILTER);}catch(e){console.log("pushFile failed: "+e.message);}}console.log("App initialized, clicking Run Automated Tests...");const button=await browser.$("android=new UiSelector().textContains(\"Run Automated Tests\")");await button.waitForDisplayed({timeout:15000});await button.click();console.log("Button clicked!");await browser.pause(5000);await global.checkAppCrash("after-click");},afterTest:async function(test,context,{error}){if(global.appCrashed)return;await global.checkAppCrash("after-test:"+test.title);}};'
           else
             PLATFORM="iOS"
             AUTOMATION="XCUITest"
@@ -1062,10 +1062,34 @@ jobs:
             echo "$ARN"
           }
 
+          # For each split: inject mocha grep AND replace __TEST_FILTER__ so
+          # the before-hook pushes a testFilter.txt the app reads at runtime.
+          # This ensures the app only executes matching tests (real splitting).
+          make_split() {
+            local pattern="$1" output="$2"
+            local cfg
+            cfg=$(echo "$WDIO_CONFIG" | sed "s/timeout:1800000}/timeout:1800000,grep:\"$pattern\"}/")
+            cfg=$(echo "$cfg" | sed "s#__TEST_FILTER__#$pattern#")
+            local b64
+            b64=$(echo "$cfg" | base64 | tr -d '\n')
+            generate_spec "$output" "$b64"
+          }
+
           if [ "${{ matrix.platform }}" == "Android" ]; then
-            generate_spec testspec.yml "$WDIO_B64"
-            SPEC_ARN=$(upload_spec testspec.yml "Android")
-            echo "test_spec_arn=$SPEC_ARN" >> $GITHUB_OUTPUT
+            ANDROID_GROUP_A="runAfriquegemmaTranslationTest|runApiBehaviorTest|runBitnetTest|runCacheStateMachineTest|runConfigParametersTest|runDynamicToolsTest|runFinetuningPauseResumeTest|runGenerationParamsTest|runImageTest"
+            ANDROID_GROUP_B="runModelLoadingTest|runMoeTest|runMultiInstanceTest|runOcrLightonTest|runReasoningTest|runSlidingContextTest|runToolCallingTest|runUtf8OutputTest"
+
+            echo "Android test split (2 groups):"
+            echo "  Group A: $ANDROID_GROUP_A"
+            echo "  Group B: $ANDROID_GROUP_B"
+
+            make_split "$ANDROID_GROUP_A" testspec-android-a.yml
+            make_split "$ANDROID_GROUP_B" testspec-android-b.yml
+
+            SPEC_ARN_A=$(upload_spec testspec-android-a.yml "Android-A")
+            echo "test_spec_arn=$SPEC_ARN_A" >> $GITHUB_OUTPUT
+            SPEC_ARN_B=$(upload_spec testspec-android-b.yml "Android-B")
+            echo "test_spec_arn_2=$SPEC_ARN_B" >> $GITHUB_OUTPUT
           else
             IOS_GREP_HEAVY_1="runFinetuningPauseResumeTest"
             IOS_GREP_HEAVY_2="runToolCallingTest"
@@ -1083,19 +1107,6 @@ jobs:
             echo "  Heavy 5 (iPhone 17):         $IOS_GREP_HEAVY_5"
             echo "  Light A (iPhone 16 Pro):     $IOS_GREP_LIGHT_A"
             echo "  Light B (iPhone 16 Pro):     $IOS_GREP_LIGHT_B"
-
-            # For each split: inject mocha grep AND replace __TEST_FILTER__ so
-            # the before-hook pushes a testFilter.txt the app reads at runtime.
-            # This ensures the app only executes matching tests (real splitting).
-            make_split() {
-              local pattern="$1" output="$2"
-              local cfg
-              cfg=$(echo "$WDIO_CONFIG" | sed "s/timeout:1800000}/timeout:1800000,grep:\"$pattern\"}/")
-              cfg=$(echo "$cfg" | sed "s#__TEST_FILTER__#$pattern#")
-              local b64
-              b64=$(echo "$cfg" | base64 | tr -d '\n')
-              generate_spec "$output" "$b64"
-            }
 
             make_split "$IOS_GREP_HEAVY_1" testspec-heavy-1.yml
             make_split "$IOS_GREP_HEAVY_2" testspec-heavy-2.yml
@@ -1150,16 +1161,21 @@ jobs:
 
           if [ "${{ matrix.platform }}" == "Android" ]; then
             POOL_ARN="${{ secrets.LLM_ANDROID_DEVICE_POOL_ARN }}"
-            TEST_SPEC_ARN="${{ steps.upload_test_spec.outputs.test_spec_arn }}"
+            TEST_SPEC_ARN_A="${{ steps.upload_test_spec.outputs.test_spec_arn }}"
+            TEST_SPEC_ARN_B="${{ steps.upload_test_spec.outputs.test_spec_arn_2 }}"
 
-            echo "🚀 Scheduling Android run on all devices in pool..."
+            echo "🚀 Scheduling 2 Android runs (each runs on all devices in pool)..."
             echo "Device Pool ARN: $POOL_ARN"
 
-            RUN_ARN_1=$(schedule_run_with_pool "$POOL_ARN" "$RUN_NAME" "$TEST_SPEC_ARN")
-            echo "✅ Android run scheduled (all pool devices): $RUN_ARN_1"
+            RUN_ARN_1=$(schedule_run_with_pool "$POOL_ARN" "$RUN_NAME-Android-GroupA" "$TEST_SPEC_ARN_A")
+            echo "✅ Android Group A scheduled: $RUN_ARN_1"
+
+            RUN_ARN_2=$(schedule_run_with_pool "$POOL_ARN" "$RUN_NAME-Android-GroupB" "$TEST_SPEC_ARN_B")
+            echo "✅ Android Group B scheduled: $RUN_ARN_2"
 
             echo "run_arn_1=$RUN_ARN_1" >> $GITHUB_OUTPUT
-            echo "run_count=1" >> $GITHUB_OUTPUT
+            echo "run_arn_2=$RUN_ARN_2" >> $GITHUB_OUTPUT
+            echo "run_count=2" >> $GITHUB_OUTPUT
           else
             POOL_ARN="${{ secrets.LLM_IOS_DEVICE_POOL_ARN }}"
             TEST_SPEC_ARN_1="${{ steps.upload_test_spec.outputs.test_spec_arn }}"
