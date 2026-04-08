@@ -28,20 +28,23 @@ export const metadata: Metadata = {
 
 const gtmId = process.env.NEXT_PUBLIC_GTM_ID ?? 'GTM-WDD9NCZ4';
 
-export default function Layout({ children }: LayoutProps<'/'>) {
-  const noindexNonProductionScript = `(function(){var p=${JSON.stringify(DOCS_PRODUCTION_HOSTNAME)};var h=typeof location!=="undefined"?location.hostname:"";if(h&&h!==p){var m=document.createElement("meta");m.setAttribute("name","robots");m.setAttribute("content","noindex, nofollow");document.head.appendChild(m);}})();`;
+/** Static script; hostname read from `data-docs-production-hostname` on `<html>` (avoids interpolating into JS for CodeQL). */
+const NOINDEX_NON_PRODUCTION_HOST_SCRIPT =
+  '(function(){var p=document.documentElement.getAttribute("data-docs-production-hostname");var h=typeof location!=="undefined"?location.hostname:"";if(p&&h&&h!==p){var m=document.createElement("meta");m.setAttribute("name","robots");m.setAttribute("content","noindex, nofollow");document.head.appendChild(m);}})();';
 
+export default function Layout({ children }: LayoutProps<'/'>) {
   return (
     <html 
       lang="en" 
       suppressHydrationWarning
-      className={inter.className}>
+      className={inter.className}
+      data-docs-production-hostname={DOCS_PRODUCTION_HOSTNAME}>
       {gtmId && <GoogleTagManager gtmId={gtmId} />}
       <body className="flex flex-col min-h-screen">
         <Script
           id="docs-robots-non-production-host"
           strategy="beforeInteractive"
-          dangerouslySetInnerHTML={{ __html: noindexNonProductionScript }}
+          dangerouslySetInnerHTML={{ __html: NOINDEX_NON_PRODUCTION_HOST_SCRIPT }}
         />
         <InkeepScript />
           <Provider>{children}</Provider>
