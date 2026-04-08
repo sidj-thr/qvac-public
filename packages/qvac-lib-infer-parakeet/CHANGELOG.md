@@ -13,6 +13,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 - Session options are now built via `onnx_addon::buildSessionOptions()` from `@qvac/onnx`, replacing manual `Ort::SessionOptions` construction. This aligns Parakeet with the same EP registration logic used by the OCR package.
 
+### Fixed
+- Fixed an issue with canceling and starting a new job immediately in Windows
+
 ## [0.3.0]
 
 This release replaces the two-argument `TranscriptionParakeet` constructor with a clean single-options interface, removes the external loader dependency, and simplifies the internal job-management pipeline.

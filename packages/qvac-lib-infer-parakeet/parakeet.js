@@ -94,6 +94,8 @@ class ParakeetInterface {
     this._activeJobId = null
     this._bufferedAudio = []
     this._bufferedBytes = 0
+    this._jobEndPromise = null
+    this._resolveJobEnd = null
 
     this._createNativeInstance(this._config)
   }
@@ -112,6 +114,8 @@ class ParakeetInterface {
     this._activeJobId = null
     this._bufferedAudio = []
     this._bufferedBytes = 0
+    this._jobEndPromise = null
+    this._resolveJobEnd = null
     this._handle = this._binding.createInstance(
       this,
       this._config,
@@ -139,6 +143,12 @@ class ParakeetInterface {
       mappedEvent = 'JobEnded'
     } else if (event === 'Output' || isTranscriptOutput || String(event).includes('Output')) {
       mappedEvent = 'Output'
+    }
+
+    if ((mappedEvent === 'Error' || mappedEvent === 'JobEnded') && this._resolveJobEnd) {
+      const resolve = this._resolveJobEnd
+      this._resolveJobEnd = null
+      resolve()
     }
 
     const jobId = this._activeJobId
@@ -227,6 +237,7 @@ class ParakeetInterface {
         }
 
         this._activeJobId = currentJobId
+        this._jobEndPromise = new Promise(resolve => { this._resolveJobEnd = resolve })
         this._nextJobId = nextSafeId(this._nextJobId)
         this._bufferedAudio = []
         this._bufferedBytes = 0
@@ -283,8 +294,10 @@ class ParakeetInterface {
       this._bufferedAudio = []
       this._bufferedBytes = 0
       if (this._activeJobId !== null) {
-        await this._binding.cancel(this._handle)
+        const jobEndPromise = this._jobEndPromise
         this._activeJobId = null
+        await this._binding.cancel(this._handle)
+        if (jobEndPromise) await jobEndPromise
       }
       this._setState(state.STOPPED)
     } catch (error) {
@@ -310,10 +323,12 @@ class ParakeetInterface {
       }
 
       if (this._activeJobId === targetJobId) {
+        const jobEndPromise = this._jobEndPromise
+        this._activeJobId = null
         await this._binding.cancel(this._handle)
+        if (jobEndPromise) await jobEndPromise
         this._bufferedAudio = []
         this._bufferedBytes = 0
-        this._activeJobId = null
         this._setState(state.LISTENING)
         return
       }
@@ -380,13 +395,15 @@ class ParakeetInterface {
         return
       }
       if (this._activeJobId !== null) {
+        const jobEndPromise = this._jobEndPromise
+        this._activeJobId = null
         try {
           await this._binding.cancel(this._handle)
+          if (jobEndPromise) await jobEndPromise
         } catch {}
       }
       this._binding.destroyInstance(this._handle)
       this._handle = null
-      this._activeJobId = null
       this._bufferedAudio = []
       this._bufferedBytes = 0
       this._setState(state.IDLE)
@@ -407,6 +424,7 @@ class ParakeetInterface {
         return false
       }
       this._activeJobId = currentJobId
+      this._jobEndPromise = new Promise(resolve => { this._resolveJobEnd = resolve })
       this._nextJobId = nextSafeId(this._nextJobId)
       this._setState(state.PROCESSING)
       return accepted
