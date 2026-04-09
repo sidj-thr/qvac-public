@@ -6,6 +6,10 @@ require('./integration-runtime.cjs')
 
 /* global runIntegrationModule */
 
-async function runAddonTest (options = {}) { // eslint-disable-line no-unused-vars
-  return runIntegrationModule('../integration/addon.test.js', options)
+async function runAddonLongTest (options = {}) { // eslint-disable-line no-unused-vars
+  return runIntegrationModule('../integration/addon.long.test.js', options)
+}
+
+async function runAddonShortTest (options = {}) { // eslint-disable-line no-unused-vars
+  return runIntegrationModule('../integration/addon.short.test.js', options)
 }
