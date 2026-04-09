@@ -17,6 +17,7 @@ function getBaseDir () {
 async function synthesizeChunk (model, text, tag) {
   let outputArray = []
   let jobStats = null
+  let reportedSampleRate = null
 
   const response = await model.run({
     input: text,
@@ -29,13 +30,16 @@ async function synthesizeChunk (model, text, tag) {
         const temp = Array.from(data.outputArray)
         outputArray = outputArray.concat(temp)
       }
+      if (data && data.sampleRate) {
+        reportedSampleRate = data.sampleRate
+      }
       if (data.event === 'JobEnded') {
         jobStats = data
       }
     })
     .await()
 
-  return { outputArray, jobStats, stats: response.stats || jobStats }
+  return { outputArray, reportedSampleRate, jobStats, stats: response.stats || jobStats }
 }
 
 async function runTTSWithSplit (model, params, expectation = {}, options = {}) {
@@ -57,6 +61,7 @@ async function runTTSWithSplit (model, params, expectation = {}, options = {}) {
     const pcmChunks = []
     let totalTime = 0
     let totalSamples = 0
+    let lastReportedSampleRate = null
 
     for (let i = 0; i < chunks.length; i++) {
       const chunkText = chunks[i]
@@ -67,6 +72,7 @@ async function runTTSWithSplit (model, params, expectation = {}, options = {}) {
 
       if (result.stats?.totalTime) totalTime += result.stats.totalTime
       totalSamples += result.outputArray.length
+      if (result.reportedSampleRate) lastReportedSampleRate = result.reportedSampleRate
 
       console.log(`${tag}  -> ${result.outputArray.length} samples`)
     }
@@ -90,6 +96,7 @@ async function runTTSWithSplit (model, params, expectation = {}, options = {}) {
         sampleCount,
         durationMs,
         sampleRate,
+        reportedSampleRate: lastReportedSampleRate,
         wavBuffer,
         stats: { totalTime, totalSamples, audioDurationMs: durationMs }
       }
@@ -143,6 +150,7 @@ async function runTTS (model, params, expectation = {}, options = {}) {
   try {
     let outputArray = []
     let jobStats = null
+    let reportedSampleRate = null
     const response = await model.run({
       input: params.text,
       type: 'text'
@@ -153,6 +161,9 @@ async function runTTS (model, params, expectation = {}, options = {}) {
         if (data && data.outputArray) {
           const temp = Array.from(data.outputArray)
           outputArray = outputArray.concat(temp)
+        }
+        if (data && data.sampleRate) {
+          reportedSampleRate = data.sampleRate
         }
         if (data.event === 'JobEnded') {
           jobStats = data
@@ -221,6 +232,7 @@ async function runTTS (model, params, expectation = {}, options = {}) {
         sampleCount,
         durationMs,
         sampleRate,
+        reportedSampleRate,
         wavBuffer,
         stats: roundedStats
       }
