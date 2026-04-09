@@ -46,12 +46,12 @@ async function runIntegrationModule (relativeModulePath, options = {}) {
 
   if (!fs.existsSync(modulePath)) {
     console.warn(`[integration-runner] Missing module: ${relativeModulePath}`)
-    return 'missing'
+    return { modulePath: 'missing', summary: { total: 0, passed: 0, failed: 0 } }
   }
 
   const moduleUrl = pathToFileURL(modulePath).href
   await import(moduleUrl)
-  return modulePath
+  return { modulePath, summary: null }
 }
 
 global.runIntegrationModule = runIntegrationModule
