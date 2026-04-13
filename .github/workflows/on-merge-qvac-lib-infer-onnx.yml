@@ -115,7 +115,9 @@ jobs:
       pull-requests: write
       id-token: write
     uses: ./.github/workflows/prebuilds-qvac-lib-infer-onnx.yml
-    secrets: inherit
+    secrets:
+      NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+      PAT_TOKEN: ${{ secrets.PAT_TOKEN }}
 
   publish-gpr:
     needs: [build, publish-logic]

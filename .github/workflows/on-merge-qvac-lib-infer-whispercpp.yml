@@ -110,7 +110,11 @@ jobs:
       pull-requests: write
       id-token: write
     uses: ./.github/workflows/prebuilds-qvac-lib-infer-whispercpp.yml
-    secrets: inherit
+    secrets:
+      NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+      PAT_TOKEN: ${{ secrets.PAT_TOKEN }}
+      AWS_OIDC_ROLE_ARN: ${{ secrets.AWS_OIDC_ROLE_ARN }}
+      MODEL_S3_BUCKET: ${{ secrets.MODEL_S3_BUCKET }}
     with:
       repository: ${{ github.repository }}
       ref: ${{ github.ref }}
@@ -287,7 +291,9 @@ jobs:
     uses: ./.github/workflows/integration-test-qvac-lib-infer-whispercpp.yml
     needs: post-build-gate
     if: needs.post-build-gate.outputs.should_run_tests == 'true'
-    secrets: inherit
+    secrets:
+      NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+      PAT_TOKEN: ${{ secrets.PAT_TOKEN }}
     with:
       repository: ${{ github.repository }}
       ref: ${{ github.sha }}
@@ -302,7 +308,17 @@ jobs:
       packages: read
       pull-requests: write
       id-token: write
-    secrets: inherit
+    secrets:
+      NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+      PAT_TOKEN: ${{ secrets.PAT_TOKEN }}
+      AWS_OIDC_ROLE_ARN: ${{ secrets.AWS_OIDC_ROLE_ARN }}
+      AWS_DEVICE_FARM_PROJECT_ARN_WHISPERCPP: ${{ secrets.AWS_DEVICE_FARM_PROJECT_ARN_WHISPERCPP }}
+      IOS_DEVICE_POOL_ARN_WHISPERCPP: ${{ secrets.IOS_DEVICE_POOL_ARN_WHISPERCPP }}
+      TEST_APP_APPLE_DISTRIBUTION_CERTIFICATE: ${{ secrets.TEST_APP_APPLE_DISTRIBUTION_CERTIFICATE }}
+      TEST_APP_APPLE_PROVISIONING_PROFILE: ${{ secrets.TEST_APP_APPLE_PROVISIONING_PROFILE }}
+      APPLE_P12_PASSWORD: ${{ secrets.APPLE_P12_PASSWORD }}
+      APPLE_KEYCHAIN_PASSWORD: ${{ secrets.APPLE_KEYCHAIN_PASSWORD }}
+      APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
     with:
       repository: ${{ github.repository }}
       ref: ${{ github.sha }}

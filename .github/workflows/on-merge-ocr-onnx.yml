@@ -121,7 +121,11 @@ jobs:
       pull-requests: write
       id-token: write
     uses: ./.github/workflows/prebuilds-ocr-onnx.yml
-    secrets: inherit
+    secrets:
+      NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+      PAT_TOKEN: ${{ secrets.PAT_TOKEN }}
+      AWS_OIDC_ROLE_ARN: ${{ secrets.AWS_OIDC_ROLE_ARN }}
+      MODEL_S3_BUCKET: ${{ secrets.MODEL_S3_BUCKET }}
 
   publish-gpr:
     needs: [build, publish-logic]
@@ -244,7 +248,12 @@ jobs:
     uses: ./.github/workflows/integration-test-ocr-onnx.yml
     needs: post-build-gate
     if: needs.post-build-gate.outputs.should_run_tests == 'true'
-    secrets: inherit
+    secrets:
+      NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+      PAT_TOKEN: ${{ secrets.PAT_TOKEN }}
+      AWS_OIDC_ROLE_ARN: ${{ secrets.AWS_OIDC_ROLE_ARN }}
+      MODEL_S3_BUCKET: ${{ secrets.MODEL_S3_BUCKET }}
+      QASE_API_TOKEN: ${{ secrets.QASE_API_TOKEN }}
     with:
       repository: ${{ github.repository }}
       ref: ${{ github.sha }}

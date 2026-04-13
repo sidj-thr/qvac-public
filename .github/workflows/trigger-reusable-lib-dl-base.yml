@@ -128,7 +128,9 @@ jobs:
       needs.publish-logic.outputs.publish_release == 'true' &&
       (needs.release-merge-guard.result == 'success' || needs.release-merge-guard.result == 'skipped')
     uses: tetherto/oss-actions/.github/workflows/public-reusable-npm.yml@v1.1.0
-    secrets: inherit
+    secrets:
+      secret-token: ${{ secrets.GITHUB_TOKEN }}
+      npm-token: ${{ secrets.NPM_TOKEN }}
     with:
       workdir: packages/dl-base
       repo_name: "dl-base"

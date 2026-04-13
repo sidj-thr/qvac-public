@@ -113,7 +113,11 @@ jobs:
       pull-requests: write
       id-token: write
     uses: ./.github/workflows/prebuilds-qvac-lib-infer-llamacpp-embed.yml
-    secrets: inherit
+    secrets:
+      NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+      PAT_TOKEN: ${{ secrets.PAT_TOKEN }}
+      AWS_OIDC_ROLE_ARN: ${{ secrets.AWS_OIDC_ROLE_ARN }}
+      MODEL_S3_BUCKET: ${{ secrets.MODEL_S3_BUCKET }}
     with:
       workdir: "packages/qvac-lib-infer-llamacpp-embed"
 
