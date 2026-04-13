@@ -26,6 +26,15 @@ on:
         type: string
         required: false
         default: "packages/qvac-lib-infer-onnx-tts"
+    secrets:
+      NPM_TOKEN:
+        required: true
+      PAT_TOKEN:
+        required: true
+      AWS_OIDC_ROLE_ARN:
+        required: true
+      MODEL_S3_BUCKET:
+        required: true
 
 permissions:
   contents: read

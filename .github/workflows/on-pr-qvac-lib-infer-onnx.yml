@@ -17,6 +17,11 @@ on:
       - ".github/workflows/*qvac-lib-infer-onnx*.yml"
   workflow_dispatch:
   workflow_call:
+    secrets:
+      NPM_TOKEN:
+        required: true
+      PAT_TOKEN:
+        required: true
 
 permissions:
   contents: read

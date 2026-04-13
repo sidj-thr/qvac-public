@@ -8,6 +8,15 @@ on:
         type: string
       repository:
         type: string
+    secrets:
+      NPM_TOKEN:
+        required: true
+      PAT_TOKEN:
+        required: true
+      AWS_OIDC_ROLE_ARN:
+        required: true
+      QASE_API_TOKEN:
+        required: true
 
   workflow_dispatch:
     inputs:

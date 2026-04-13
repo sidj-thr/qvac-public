@@ -28,6 +28,11 @@ on:
         description: "Tag to publish with"
         required: false
         type: string
+    secrets:
+      NPM_TOKEN:
+        required: true
+      PAT_TOKEN:
+        required: true
 
 permissions:
   contents: read

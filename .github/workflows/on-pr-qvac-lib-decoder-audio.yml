@@ -45,6 +45,11 @@ on:
         required: false
         type: string
         default: "packages/qvac-lib-decoder-audio"
+    secrets:
+      NPM_TOKEN:
+        required: true
+      PAT_TOKEN:
+        required: true
 
 permissions:
   contents: read

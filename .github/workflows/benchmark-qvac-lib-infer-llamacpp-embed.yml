@@ -129,6 +129,13 @@ on:
         required: false
         default: "packages/qvac-lib-infer-llamacpp-embed"
         type: string
+    secrets:
+      NPM_TOKEN:
+        required: true
+      PAT_TOKEN:
+        required: true
+      HF_TOKEN:
+        required: true
 
 permissions:
   contents: read

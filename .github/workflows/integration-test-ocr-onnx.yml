@@ -25,6 +25,17 @@ on:
         type: string
         required: false
         default: "packages/ocr-onnx"
+    secrets:
+      NPM_TOKEN:
+        required: true
+      PAT_TOKEN:
+        required: true
+      AWS_OIDC_ROLE_ARN:
+        required: true
+      MODEL_S3_BUCKET:
+        required: true
+      QASE_API_TOKEN:
+        required: true
 
 env:
   PKG_DIR: packages/ocr-onnx

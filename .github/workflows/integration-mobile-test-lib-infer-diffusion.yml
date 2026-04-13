@@ -11,6 +11,29 @@ on:
         description: "Repository to checkout"
         type: string
         required: false
+    secrets:
+      NPM_TOKEN:
+        required: true
+      PAT_TOKEN:
+        required: true
+      AWS_OIDC_ROLE_ARN:
+        required: true
+      LLM_AWS_DEVICE_FARM_PROJECT_ARN:
+        required: true
+      LLM_ANDROID_DEVICE_POOL_ARN:
+        required: true
+      LLM_IOS_DEVICE_POOL_ARN:
+        required: true
+      TEST_APP_APPLE_DISTRIBUTION_CERTIFICATE:
+        required: true
+      TEST_APP_APPLE_PROVISIONING_PROFILE:
+        required: true
+      APPLE_P12_PASSWORD:
+        required: true
+      APPLE_KEYCHAIN_PASSWORD:
+        required: true
+      APPLE_TEAM_ID:
+        required: true
   workflow_dispatch:
     inputs:
       ref:

@@ -33,6 +33,15 @@ on:
         required: false
         type: string
         default: "packages/qvac-lib-infer-llamacpp-llm"
+    secrets:
+      NPM_TOKEN:
+        required: true
+      PAT_TOKEN:
+        required: true
+      AWS_OIDC_ROLE_ARN:
+        required: true
+      MODEL_S3_BUCKET:
+        required: true
 
 env:
   WORKDIR: ${{ inputs.workdir }}

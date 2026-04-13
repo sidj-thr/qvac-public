@@ -15,6 +15,11 @@ on:
         type: string
         required: false
         default: "packages/qvac-lib-infer-llamacpp-embed"
+    secrets:
+      PAT_TOKEN:
+        required: true
+      NPM_TOKEN:
+        required: true
   workflow_dispatch:
     inputs:
       ref:

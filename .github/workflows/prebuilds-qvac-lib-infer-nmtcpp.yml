@@ -10,6 +10,15 @@ on:
       repository:
         type: string
         default: "tetherto/qvac"
+    secrets:
+      NPM_TOKEN:
+        required: true
+      PAT_TOKEN:
+        required: true
+      AWS_OIDC_ROLE_ARN:
+        required: true
+      MODEL_S3_BUCKET:
+        required: true
   workflow_dispatch:
 
 env:

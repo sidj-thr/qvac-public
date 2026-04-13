@@ -18,6 +18,11 @@ on:
   workflow_dispatch:
   
   workflow_call:
+    secrets:
+      NPM_TOKEN:
+        required: true
+      PAT_TOKEN:
+        required: true
 
 permissions:
   contents: read
