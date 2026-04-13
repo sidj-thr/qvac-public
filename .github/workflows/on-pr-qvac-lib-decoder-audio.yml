@@ -50,6 +50,26 @@ on:
         required: true
       PAT_TOKEN:
         required: true
+      QASE_API_TOKEN:
+        required: false
+      AWS_OIDC_ROLE_ARN:
+        required: false
+      AWS_DEVICE_FARM_PROJECT_ARN_DECODER_AUDIO:
+        required: false
+      ANDROID_DEVICE_POOL_ARN_DECODER_AUDIO:
+        required: false
+      IOS_DEVICE_POOL_ARN_DECODER_AUDIO:
+        required: false
+      TEST_APP_APPLE_DISTRIBUTION_CERTIFICATE:
+        required: false
+      TEST_APP_APPLE_PROVISIONING_PROFILE:
+        required: false
+      APPLE_P12_PASSWORD:
+        required: false
+      APPLE_KEYCHAIN_PASSWORD:
+        required: false
+      APPLE_TEAM_ID:
+        required: false
 
 permissions:
   contents: read

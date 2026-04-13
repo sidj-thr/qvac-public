@@ -37,11 +37,6 @@ on:
       ref:
         required: false
         type: string
-    secrets:
-      NPM_TOKEN:
-        required: true
-      PAT_TOKEN:
-        required: true
       run_verify:
         required: false
         type: boolean
@@ -50,6 +45,31 @@ on:
         required: false
         type: string
         default: "packages/qvac-lib-infer-onnx-tts"
+    secrets:
+      NPM_TOKEN:
+        required: true
+      PAT_TOKEN:
+        required: true
+      AWS_OIDC_ROLE_ARN:
+        required: false
+      MODEL_S3_BUCKET:
+        required: false
+      QASE_API_TOKEN:
+        required: false
+      AWS_DEVICE_FARM_PROJECT_ARN_ONNX_TTS:
+        required: false
+      IOS_DEVICE_POOL_ARN_ONNX_TTS:
+        required: false
+      TEST_APP_APPLE_DISTRIBUTION_CERTIFICATE:
+        required: false
+      TEST_APP_APPLE_PROVISIONING_PROFILE:
+        required: false
+      APPLE_P12_PASSWORD:
+        required: false
+      APPLE_KEYCHAIN_PASSWORD:
+        required: false
+      APPLE_TEAM_ID:
+        required: false
 
 permissions:
   contents: read

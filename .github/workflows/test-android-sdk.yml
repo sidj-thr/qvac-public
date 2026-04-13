@@ -61,6 +61,8 @@ on:
         required: true
       AWS_SECRET_ACCESS_KEY:
         required: true
+      AWS_OIDC_ROLE_ARN:
+        required: false
 
 permissions:
   id-token: write
