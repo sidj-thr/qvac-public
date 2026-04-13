@@ -129,8 +129,8 @@ jobs:
       (needs.release-merge-guard.result == 'success' || needs.release-merge-guard.result == 'skipped')
     uses: tetherto/oss-actions/.github/workflows/public-reusable-npm.yml@v1.1.0
     secrets:
-      secret-token: ${{ secrets.GITHUB_TOKEN }}
-      npm-token: ${{ secrets.NPM_TOKEN }}
+      PAT_TOKEN: ${{ secrets.PAT_TOKEN }}
+      NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
     with:
       workdir: packages/dl-hyperdrive
       repo_name: dl-hyperdrive

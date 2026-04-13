@@ -116,8 +116,8 @@ jobs:
     if: needs.publish-logic.outputs.publish_release == 'true'
     uses: tetherto/oss-actions/.github/workflows/public-reusable-npm.yml@v1.1.0
     secrets:
-      secret-token: ${{ secrets.GITHUB_TOKEN }}
-      npm-token: ${{ secrets.NPM_TOKEN }}
+      PAT_TOKEN: ${{ secrets.PAT_TOKEN }}
+      NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
     with:
       workdir: packages/qvac-lib-diagnostics
       repo_name: diagnostics

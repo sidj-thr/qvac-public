@@ -60,9 +60,8 @@ jobs:
     needs: authorize
     uses: tetherto/oss-actions/.github/workflows/cpp-lint.yaml@v1.1.0
     secrets:
-      secret-token: ${{ secrets.GITHUB_TOKEN }}
-      npm-token: ${{ secrets.NPM_TOKEN }}
-      pat-token: ${{ secrets.PAT_TOKEN }}
+      NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+      PAT_TOKEN: ${{ secrets.PAT_TOKEN }}
     with:
       sha: ${{ github.event.pull_request.base.sha }}
       pr_head_sha: ${{ github.event.pull_request.head.sha }}

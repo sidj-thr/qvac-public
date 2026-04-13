@@ -160,9 +160,8 @@ jobs:
     if: needs.context.outputs.run_verify == 'true' || github.event_name == 'workflow_dispatch'
     uses: tetherto/oss-actions/.github/workflows/cpp-lint.yaml@v1.1.0
     secrets:
-      secret-token: ${{ secrets.GITHUB_TOKEN }}
-      npm-token: ${{ secrets.NPM_TOKEN }}
-      pat-token: ${{ secrets.PAT_TOKEN }}
+      NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+      PAT_TOKEN: ${{ secrets.PAT_TOKEN }}
     with:
       sha: ${{ needs.context.outputs.base_sha }}
       pr_head_sha: ${{ needs.context.outputs.head_sha }}
