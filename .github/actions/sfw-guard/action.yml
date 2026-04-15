@@ -17,9 +17,6 @@ inputs:
     description: "Required only for firewall-enterprise"
     required: false
     default: ""
-  workdir: 
-    default: "."
-    type: string
 
 runs:
   using: "composite"
@@ -81,7 +78,6 @@ runs:
       shell: bash
       run: |
         set -euo pipefail
-        echo "workdir: ${{ inputs.workdir }}"
         echo "sfw version:"; sfw --version || true
         echo "PATH head:"; echo "$PATH" | awk -F: '{print $1}'
         for exe in npm pip pip3 uv cargo; do
