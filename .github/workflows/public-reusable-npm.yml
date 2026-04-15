@@ -114,7 +114,6 @@ jobs:
           exit 1
 
       - name: Call Publish NPM Action
-        if: ${{ github.event.pull_request.head.repo.full_name != 'tetherto/qvac-devops' }}
         uses: ./.github/actions/publish-library-to-npm
         with:
           secret-token: ${{ secrets.NPM_TOKEN }}
@@ -147,7 +146,6 @@ jobs:
 
       - name: Publish to NPM
         id: publish-npm
-        if: ${{ github.event.pull_request.head.repo.full_name != 'tetherto/qvac-devops' }}
         uses: ./.github/actions/publish-library-to-npm
         with:
           secret-token: ${{ secrets.NPM_TOKEN }}

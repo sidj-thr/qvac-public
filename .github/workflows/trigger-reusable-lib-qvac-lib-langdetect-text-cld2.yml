@@ -1,5 +1,5 @@
 name: General CI/CD (Qvac-lib-langdetect-text-cld2)
-# This workflow is used to call the reusable workflows in the oss-actions repository
+# This workflow is used to call the reusable workflows in the qvac repository
 # https://github.com/qvac/blob/main/.github/workflows/.github/workflows/public-reusable.yml
 
 on:

@@ -1,5 +1,5 @@
 name: General CI/CD (dl-hyperdrive)
-# This workflow is used to call the reusable workflows in the oss-actions repository
+# This workflow is used to call the reusable workflows in the qvac repository
 # (ported into the monorepo)
 
 on:
