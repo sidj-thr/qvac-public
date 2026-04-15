@@ -43,7 +43,7 @@ on:
 jobs:
   validate-pr: # to do checks after other workflows have run
     runs-on: ubuntu-latest
-    environment: release
+    runs-on: ubuntu-latest
     permissions:
       contents: read
       packages: read
