@@ -31,8 +31,7 @@ runs:
       with:
         path: ~/.npm
         key: npm-${{ runner.os }}-${{ hashFiles(format('{0}/package.json', inputs.workdir)) }}
-        restore-keys: |
-          npm-${{ runner.os }}-
+        restore-keys: npm-${{ runner.os }}-
 
     - name: Configure .npmrc for both npmjs and GitHub Packages
       shell: bash
