@@ -71,7 +71,7 @@ jobs:
   cpp-lint:
     if: needs.authorize.outputs.allowed == 'true'
     needs: authorize
-    uses: ./.github/workflows/cpp-lint.yaml@v1.1.0
+    uses: ./.github/workflows/cpp-lint.yaml@main
     secrets: inherit
     with:
       sha: ${{ github.event.pull_request.base.sha }}
@@ -157,7 +157,7 @@ jobs:
   merge-guard:
     needs: [authorize, verify-fabric-lockstep, sanity-checks, cpp-lint, cpp-tests, prebuild, integration-tests, run-mobile-integration-tests, ts-checks]
     if: always()
-    uses: ./.github/workflows/public-pr.yml@v1.1.0
+    uses: ./.github/workflows/public-pr.yml@main
     with:
       sanity-checks-status: ${{ needs.verify-fabric-lockstep.result == 'success' && needs.sanity-checks.result == 'success' }}
       build-status: ${{ needs.prebuild.result == 'success' }}

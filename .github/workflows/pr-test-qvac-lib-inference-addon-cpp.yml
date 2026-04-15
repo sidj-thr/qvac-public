@@ -74,7 +74,7 @@ jobs:
           token: ${{ secrets.PAT_TOKEN }}
 
       - name: yamlfmt
-        uses: ./.github/actions/yamlfmt@v1.1.0
+        uses: ./.github/actions/yamlfmt@main
         with:
           workdir: ${{ env.PKG_DIR }}
         

@@ -149,7 +149,7 @@ jobs:
           fetch-depth: 0
 
       - name: Publish to GitHub Packages (dev)
-        uses: ./.github/actions/publish-library-to-gpr@v1.1.0
+        uses: ./.github/actions/publish-library-to-gpr@main
         with:
           secret-token: ${{ secrets.GITHUB_TOKEN }}
           npm-token: ${{ secrets.NPM_TOKEN }}
@@ -167,7 +167,7 @@ jobs:
       always() &&
       needs.publish-logic.outputs.publish_release == 'true' &&
       (needs.release-merge-guard.result == 'success' || needs.release-merge-guard.result == 'skipped')
-    uses: ./.github/workflows/public-reusable-npm.yml@v1.1.0
+    uses: ./.github/workflows/public-reusable-npm.yml@main
     secrets: inherit
     with:
       workdir: packages/qvac-lib-langdetect-text-cld2
@@ -188,7 +188,7 @@ jobs:
           fetch-depth: 0
 
       - name: Publish to GitHub Packages (feature)
-        uses: ./.github/actions/publish-library-to-gpr@v1.1.0
+        uses: ./.github/actions/publish-library-to-gpr@main
         with:
           secret-token: ${{ secrets.GITHUB_TOKEN }}
           npm-token: ${{ secrets.NPM_TOKEN }}
@@ -210,7 +210,7 @@ jobs:
           fetch-depth: 0
 
       - name: Publish to GitHub Packages (tmp)
-        uses: ./.github/actions/publish-library-to-gpr@v1.1.0
+        uses: ./.github/actions/publish-library-to-gpr@main
         with:
           secret-token: ${{ secrets.GITHUB_TOKEN }}
           npm-token: ${{ secrets.NPM_TOKEN }}
