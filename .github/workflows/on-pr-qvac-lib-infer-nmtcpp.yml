@@ -113,7 +113,7 @@ jobs:
       always() &&
        needs.authorize.outputs.allowed == 'true' &&
       (needs.changes.outputs.pkg == 'true' || github.event_name == 'workflow_dispatch')
-    uses: ./.github/workflows/cpp-lint.yaml@main
+    uses: ./.github/workflows/cpp-lint.yaml
     secrets: inherit
     with:
       sha: ${{ github.event.pull_request.base.sha || github.event.before || 'HEAD~1' }}
@@ -202,7 +202,7 @@ jobs:
         run-mobile-integration-tests,
       ]
     if: always() && (needs.changes.outputs.pkg == 'true' || github.event_name == 'workflow_dispatch')
-    uses: ./.github/workflows/public-pr.yml@main
+    uses: ./.github/workflows/public-pr.yml
     with:
       sanity-checks-status: ${{ needs.verify-fabric-lockstep.result == 'success' && needs.sanity-checks.result == 'success' && needs.cpp-tests.result == 'success' && needs.ts-checks.result == 'success' }}
       build-status: ${{ needs.prebuild.result == 'success' }}

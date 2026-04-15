@@ -70,7 +70,7 @@ jobs:
 
   cpp-lint:
     if: needs.authorize.outputs.allowed == 'true'
-    uses: ./.github/workflows/cpp-lint.yaml@main
+    uses: ./.github/workflows/cpp-lint.yaml
     needs: authorize
     secrets: inherit
     with:
@@ -153,7 +153,7 @@ jobs:
         ts-checks,
       ]
     if: always()
-    uses: ./.github/workflows/public-pr.yml@main
+    uses: ./.github/workflows/public-pr.yml
     permissions:
       contents: read
       pull-requests: write

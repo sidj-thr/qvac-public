@@ -99,7 +99,7 @@ jobs:
           fetch-depth: 0
 
       - name: Publish to GitHub Packages (dev)
-        uses: ./.github/actions/publish-library-to-gpr@main
+        uses: ./.github/actions/publish-library-to-gpr
         with:
           secret-token: ${{ secrets.GITHUB_TOKEN }}
           npm-token: ${{ secrets.NPM_TOKEN }}
@@ -114,7 +114,7 @@ jobs:
       packages: write
       id-token: write
     if: needs.publish-logic.outputs.publish_release == 'true'
-    uses: ./.github/workflows/public-reusable-npm.yml@main
+    uses: ./.github/workflows/public-reusable-npm.yml
     secrets: inherit
     with:
       workdir: packages/qvac-lib-diagnostics
@@ -149,7 +149,7 @@ jobs:
           fetch-depth: 0
 
       - name: Publish to GitHub Packages (feature)
-        uses: ./.github/actions/publish-library-to-gpr@main
+        uses: ./.github/actions/publish-library-to-gpr
         with:
           secret-token: ${{ secrets.GITHUB_TOKEN }}
           npm-token: ${{ secrets.NPM_TOKEN }}
@@ -171,7 +171,7 @@ jobs:
           fetch-depth: 0
 
       - name: Publish to GitHub Packages (tmp)
-        uses: ./.github/actions/publish-library-to-gpr@main
+        uses: ./.github/actions/publish-library-to-gpr
         with:
           secret-token: ${{ secrets.GITHUB_TOKEN }}
           npm-token: ${{ secrets.NPM_TOKEN }}

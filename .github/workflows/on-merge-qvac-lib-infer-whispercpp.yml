@@ -162,7 +162,7 @@ jobs:
 
       - name: Publish to GitHub Package Registry
         id: publish
-        uses: ./.github/actions/publish-library-to-gpr@main
+        uses: ./.github/actions/publish-library-to-gpr
         with:
           secret-token: ${{ secrets.GITHUB_TOKEN }}
           tag: ${{ (github.event_name == 'workflow_dispatch' && github.event.inputs.tag) || needs.publish-logic.outputs.gpr_tag }}
