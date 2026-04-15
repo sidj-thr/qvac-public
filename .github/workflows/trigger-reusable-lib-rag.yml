@@ -1,6 +1,6 @@
 name: General CI/CD (rag)
 # This workflow is used to call the reusable workflows in the qvac repository
-# https://github.com/qvac/blob/main/.github/workflows/.github/workflows/public-reusable.yml
+# https://github.com/qvac/blob/main/.github/workflows/public-reusable.yml
 
 on:
   push:
