@@ -217,7 +217,6 @@ jobs:
         id: publish
         uses: ./.github/actions/publish-library-to-npm
         with:
-          secret-token: ${{ secrets.NPM_TOKEN }}
           tag: "latest"
           workdir: packages/lib-infer-diffusion
           repo_name: "diffusion-cpp"
