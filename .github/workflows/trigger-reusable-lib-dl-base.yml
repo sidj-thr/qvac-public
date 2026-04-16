@@ -1,6 +1,6 @@
 name: General CI/CD (dl-base)
 # This workflow is used to call the reusable workflows in the qvac repository
-# https://github.com/tetherto/qvac/blob/main/.github/workflows/public-reusable.yml
+# https://github.com/tetherto/qvac/blob/main/.github/workflows/public-reusable-npm.yml
 
 on:
   push:
