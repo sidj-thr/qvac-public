@@ -2,10 +2,6 @@ name: Publish NPM
 description: "Publish a package to NPM"
 
 inputs:
-  secret-token:
-    description: "NPM auth token"
-    required: true
-
   release:
     description: "Use tag. Release stream, temporary here for compatibility with old workflows"
     required: false
@@ -56,7 +52,6 @@ runs:
       id: publish
       shell: bash
       env:
-        NODE_AUTH_TOKEN: ${{ inputs.secret-token }}
         GIT_PUSH_TOKEN: ${{ inputs.git-token }}
         CREATE_TAG: ${{ inputs.create-tag }}
         INPUT_PATH: ${{ inputs.path }}
@@ -100,16 +95,6 @@ runs:
           echo "ERROR: package.json not found in target directory: ${TARGET_DIR}" >&2
           exit 1
         fi
-
-        ####################################################################
-        # Write .npmrc
-        ####################################################################
-        echo "Writing .npmrc in $(pwd)"
-        {
-          echo "registry=https://registry.npmjs.org/"
-          echo "@qvac:registry=https://registry.npmjs.org/"
-          echo "//registry.npmjs.org/:_authToken=${NODE_AUTH_TOKEN}"
-        } > .npmrc
 
         ####################################################################
         # Core logic preserved below
