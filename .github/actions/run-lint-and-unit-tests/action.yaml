@@ -8,9 +8,6 @@ inputs:
   gpr-token:
     description: "Auth token for GitHub Packages (for @tetherto/*) — can be the GitHub Actions GITHUB_TOKEN"
     required: true
-  pat-token:
-    description: "Optional PAT for fetching GitHub deps via HTTPS (git dependencies)"
-    required: false
   registry-type:
     description: "Type of registry to use"
     required: true
@@ -49,12 +46,10 @@ runs:
           echo "//registry.npmjs.org/:_authToken=${{ inputs.npm-token }}" >> .npmrc
         fi
 
-        # @tetherto/* from GitHub Packages (only when pat-token provided)
-        if [ -n "${{ inputs.pat-token }}" ]; then
-          echo "@tetherto:registry=https://npm.pkg.github.com/" >> .npmrc
-          echo "//npm.pkg.github.com/:_authToken=${{ inputs.pat-token }}" >> .npmrc
-          git config --global url."https://${{ inputs.pat-token }}:@github.com/".insteadOf "https://github.com/"
-        fi
+        # @tetherto/* from GitHub Packages
+        echo "@tetherto:registry=https://npm.pkg.github.com/" >> .npmrc
+        echo "//npm.pkg.github.com/:_authToken=${{ inputs.gpr-token }}" >> .npmrc
+
       shell: bash
       working-directory: ${{ inputs.workdir }}
     - name: Install dependencies
