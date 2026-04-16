@@ -152,8 +152,3 @@ jobs:
           workdir: ${{ inputs.workdir }}
           repo_name: ${{ inputs.repo_name }}
           git-token: ${{ secrets.GITHUB_TOKEN }}
-
-  debug-print:
-    uses: ./.github/workflows/debugger-reusable.yml
-    secrets:
-      pat_token: ${{ secrets.PAT_TOKEN || secrets.GITHUB_TOKEN }}
