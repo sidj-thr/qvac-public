@@ -8,9 +8,6 @@ inputs:
   gpr-token:
     description: "Auth token for GitHub Packages (for @tetherto/*) — can be the GitHub Actions GITHUB_TOKEN"
     required: true
-  pat-token:
-    description: "Optional PAT for fetching GitHub deps via HTTPS (git dependencies)"
-    required: false
   workdir:
     description: "Working directory inside the repo (monorepo package path)"
     required: false
@@ -49,12 +46,7 @@ runs:
 
         # @tetherto/* from GitHub Packages
         echo "@tetherto:registry=https://npm.pkg.github.com" >> .npmrc
-        echo "//npm.pkg.github.com/:_authToken=${{ inputs.pat-token }}" >> .npmrc
-
-        # If you use git+https deps, rewrite to include a PAT for private repos
-        if [ -n "${{ inputs.pat-token }}" ]; then
-          git config --global url."https://${{ inputs.pat-token }}:@github.com/".insteadOf "https://github.com/"
-        fi
+        echo "//npm.pkg.github.com/:_authToken=${{ inputs.gpr-token }}" >> .npmrc
 
     - name: Install dependencies
       shell: bash

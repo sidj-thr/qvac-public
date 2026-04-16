@@ -80,7 +80,6 @@ runs:
       uses: ./.github/actions/run-lint-and-unit-tests
       with:
         gpr-token: ${{ inputs.secret-token }}
-        pat-token: ${{ inputs.pat-token }}
         npm-token: ${{ inputs.npm-token }}
         registry-type: gpr
         workdir: ${{ inputs.workdir }}

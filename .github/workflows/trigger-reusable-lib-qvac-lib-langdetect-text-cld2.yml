@@ -47,7 +47,6 @@ jobs:
           workdir: packages/qvac-lib-langdetect-text-cld2
           npm-token: ${{ secrets.NPM_TOKEN }}
           gpr-token: ${{ secrets.GITHUB_TOKEN }}
-          pat-token: ${{ secrets.PAT_TOKEN }}
           registry-type: gpr
 
       - name: Run test coverage

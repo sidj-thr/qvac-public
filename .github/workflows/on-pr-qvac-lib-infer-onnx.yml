@@ -123,7 +123,6 @@ jobs:
         uses: ./.github/actions/run-lint-and-unit-tests
         with:
           gpr-token: ${{ secrets.GITHUB_TOKEN }}
-          pat-token: ${{ secrets.GITHUB_TOKEN }}
           registry-type: gpr
           workdir: ${{ env.PKG_DIR }}
 
