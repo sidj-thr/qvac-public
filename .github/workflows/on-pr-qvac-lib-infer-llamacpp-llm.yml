@@ -19,6 +19,8 @@ on:
   
   workflow_call:
     secrets:
+      NPM_TOKEN:
+        required: true
       PAT_TOKEN:
         required: true
       AWS_OIDC_ROLE_ARN:

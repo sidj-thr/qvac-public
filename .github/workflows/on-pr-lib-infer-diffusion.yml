@@ -174,7 +174,6 @@ jobs:
     needs: [authorize, prebuild]
     uses: ./.github/workflows/integration-mobile-test-lib-infer-diffusion.yml
     secrets:
-      NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
       PAT_TOKEN: ${{ secrets.PAT_TOKEN }}
       AWS_OIDC_ROLE_ARN: ${{ secrets.AWS_OIDC_ROLE_ARN }}
       LLM_AWS_DEVICE_FARM_PROJECT_ARN: ${{ secrets.LLM_AWS_DEVICE_FARM_PROJECT_ARN }}
