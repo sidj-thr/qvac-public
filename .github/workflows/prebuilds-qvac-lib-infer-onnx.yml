@@ -19,6 +19,11 @@ on:
         type: string
         required: false
         default: "on-onnx"
+    secrets:
+      NPM_TOKEN:
+        required: true
+      PAT_TOKEN:
+        required: true
 
 env:
   PKG_DIR: packages/qvac-lib-infer-onnx

@@ -17,6 +17,11 @@ on:
       - ".github/workflows/*qvac-lib-infer-onnx*.yml"
   workflow_dispatch:
   workflow_call:
+    secrets:
+      NPM_TOKEN:
+        required: true
+      PAT_TOKEN:
+        required: true
 
 permissions:
   contents: read
@@ -159,7 +164,9 @@ jobs:
     needs: [authorize, changes]
     if: needs.authorize.outputs.allowed == 'true' || github.event_name == 'workflow_dispatch'
     uses: tetherto/oss-actions/.github/workflows/cpp-lint.yaml@v1.1.0
-    secrets: inherit
+    secrets:
+      NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+      PAT_TOKEN: ${{ secrets.PAT_TOKEN }}
     with:
       sha: ${{ github.event.pull_request.base.sha || github.sha }}
       pr_head_sha: ${{ github.event.pull_request.head.sha }}
@@ -170,7 +177,6 @@ jobs:
       contents: write
       packages: write
       pull-requests: write
-      id-token: write
     needs: [authorize, changes]
     if: |
       (needs.changes.outputs.pkg == 'true') &&
@@ -179,7 +185,9 @@ jobs:
         needs.authorize.outputs.allowed == 'true'
       )
     uses: ./.github/workflows/prebuilds-qvac-lib-infer-onnx.yml
-    secrets: inherit
+    secrets:
+      NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+      PAT_TOKEN: ${{ secrets.PAT_TOKEN }}
     with:
       repository: ${{ github.event.pull_request.head.repo.full_name || github.repository }}
       ref: ${{ github.event.pull_request.head.ref || github.ref }}
