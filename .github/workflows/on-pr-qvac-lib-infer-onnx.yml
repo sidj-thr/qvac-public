@@ -186,8 +186,9 @@ jobs:
       )
     uses: ./.github/workflows/prebuilds-qvac-lib-infer-onnx.yml
     secrets:
-      NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
       PAT_TOKEN: ${{ secrets.PAT_TOKEN }}
+      AWS_OIDC_ROLE_ARN: ${{ secrets.AWS_OIDC_ROLE_ARN }}
+      MODEL_S3_BUCKET: ${{ secrets.MODEL_S3_BUCKET }}
     with:
       repository: ${{ github.event.pull_request.head.repo.full_name || github.repository }}
       ref: ${{ github.event.pull_request.head.ref || github.ref }}
