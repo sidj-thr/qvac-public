@@ -8,6 +8,11 @@ on:
         type: string
       repository:
         type: string
+    secrets:
+      NPM_TOKEN:
+        required: true
+      PAT_TOKEN:
+        required: true
   workflow_dispatch:
 
 env:

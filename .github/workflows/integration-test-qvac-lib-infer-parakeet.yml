@@ -20,6 +20,11 @@ on:
         type: string
       repository:
         type: string
+    secrets:
+      NPM_TOKEN:
+        required: true
+      PAT_TOKEN:
+        required: true
 
 jobs:
   run-integration-tests:

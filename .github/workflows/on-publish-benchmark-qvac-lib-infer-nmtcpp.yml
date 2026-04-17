@@ -62,7 +62,11 @@ jobs:
       id-token: write
     needs: prepare
     uses: ./.github/workflows/benchmark-qvac-lib-infer-nmtcpp.yml
-    secrets: inherit
+    secrets:
+      NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+      PAT_TOKEN: ${{ secrets.PAT_TOKEN }}
+      AWS_OIDC_ROLE_ARN: ${{ secrets.AWS_OIDC_ROLE_ARN }}
+      MODEL_S3_BUCKET: ${{ secrets.MODEL_S3_BUCKET }}
     with:
       pairs: ${{ needs.prepare.outputs.bergamot_pairs }}
       translators: 'qvac_bergamot'
