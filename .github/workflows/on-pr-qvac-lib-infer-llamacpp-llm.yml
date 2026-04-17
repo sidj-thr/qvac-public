@@ -19,8 +19,6 @@ on:
   
   workflow_call:
     secrets:
-      NPM_TOKEN:
-        required: true
       PAT_TOKEN:
         required: true
       AWS_OIDC_ROLE_ARN:
@@ -156,7 +154,6 @@ jobs:
       id-token: write
     uses: ./.github/workflows/prebuilds-qvac-lib-infer-llamacpp-llm.yml
     secrets:
-      NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
       PAT_TOKEN: ${{ secrets.PAT_TOKEN }}
       AWS_OIDC_ROLE_ARN: ${{ secrets.AWS_OIDC_ROLE_ARN }}
       MODEL_S3_BUCKET: ${{ secrets.MODEL_S3_BUCKET }}
