@@ -98,15 +98,6 @@ on:
         required: false
         default: 'fast'
         type: string
-    secrets:
-      NPM_TOKEN:
-        required: true
-      PAT_TOKEN:
-        required: true
-      AWS_OIDC_ROLE_ARN:
-        required: true
-      MODEL_S3_BUCKET:
-        required: true
 
 env:
   PKG_DIR: packages/qvac-lib-infer-nmtcpp

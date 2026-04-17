@@ -11,15 +11,6 @@ on:
         description: "Repository to checkout"
         type: string
         required: false
-    secrets:
-      PAT_TOKEN:
-        required: true
-      NPM_TOKEN:
-        required: true
-      AWS_OIDC_ROLE_ARN:
-        required: true
-      MODEL_S3_BUCKET:
-        required: true
 
 env:
   WORKDIR: packages/qvac-lib-infer-nmtcpp

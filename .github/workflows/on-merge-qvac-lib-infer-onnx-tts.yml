@@ -112,11 +112,7 @@ jobs:
       pull-requests: write
       id-token: write
     uses: ./.github/workflows/prebuilds-qvac-lib-infer-onnx-tts.yml
-    secrets:
-      NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
-      PAT_TOKEN: ${{ secrets.PAT_TOKEN }}
-      AWS_OIDC_ROLE_ARN: ${{ secrets.AWS_OIDC_ROLE_ARN }}
-      MODEL_S3_BUCKET: ${{ secrets.MODEL_S3_BUCKET }}
+    secrets: inherit
     with:
       repository: ${{ github.repository }}
       ref: ${{ github.ref }}
@@ -185,7 +181,7 @@ jobs:
 
       - name: Publish to NPM Package Registry
         id: publish
-        uses: tetherto/oss-actions/.github/actions/publish-library-to-npm@v1.1.0
+        uses: ./.github/actions/publish-library-to-npm
         with:
           secret-token: ${{ secrets.NPM_TOKEN }}
           tag: "latest"
@@ -252,11 +248,7 @@ jobs:
     uses: ./.github/workflows/integration-test-qvac-lib-infer-onnx-tts.yml
     needs: post-build-gate
     if: needs.post-build-gate.outputs.should_run_tests == 'true'
-    secrets:
-      NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
-      PAT_TOKEN: ${{ secrets.PAT_TOKEN }}
-      AWS_OIDC_ROLE_ARN: ${{ secrets.AWS_OIDC_ROLE_ARN }}
-      QASE_API_TOKEN: ${{ secrets.QASE_API_TOKEN }}
+    secrets: inherit
     with:
       repository: ${{ github.repository }}
       ref: ${{ github.sha }}
@@ -270,17 +262,7 @@ jobs:
       packages: read
       pull-requests: write
       id-token: write
-    secrets:
-      NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
-      PAT_TOKEN: ${{ secrets.PAT_TOKEN }}
-      AWS_OIDC_ROLE_ARN: ${{ secrets.AWS_OIDC_ROLE_ARN }}
-      AWS_DEVICE_FARM_PROJECT_ARN_ONNX_TTS: ${{ secrets.AWS_DEVICE_FARM_PROJECT_ARN_ONNX_TTS }}
-      IOS_DEVICE_POOL_ARN_ONNX_TTS: ${{ secrets.IOS_DEVICE_POOL_ARN_ONNX_TTS }}
-      TEST_APP_APPLE_DISTRIBUTION_CERTIFICATE:
-      TEST_APP_APPLE_PROVISIONING_PROFILE: ${{ secrets.TEST_APP_APPLE_PROVISIONING_PROFILE }}
-      APPLE_P12_PASSWORD: ${{ secrets.APPLE_P12_PASSWORD }}
-      APPLE_KEYCHAIN_PASSWORD: ${{ secrets.APPLE_KEYCHAIN_PASSWORD }}
-      APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+    secrets: inherit
     with:
       repository: ${{ github.repository }}
       ref: ${{ github.sha }}

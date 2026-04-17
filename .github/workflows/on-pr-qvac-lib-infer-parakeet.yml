@@ -36,29 +36,6 @@ on:
         required: false
         type: boolean
         default: true
-    secrets:
-      NPM_TOKEN:
-        required: true
-      PAT_TOKEN:
-        required: true
-      AWS_OIDC_ROLE_ARN:
-        required: false
-      MODEL_S3_BUCKET:
-        required: false
-      AWS_DEVICE_FARM_PROJECT_ARN_PARAKEET:
-        required: false
-      IOS_DEVICE_POOL_ARN_PARAKEET:
-        required: false
-      TEST_APP_APPLE_DISTRIBUTION_CERTIFICATE:
-        required: false
-      TEST_APP_APPLE_PROVISIONING_PROFILE:
-        required: false
-      APPLE_P12_PASSWORD:
-        required: false
-      APPLE_KEYCHAIN_PASSWORD:
-        required: false
-      APPLE_TEAM_ID:
-        required: false
 
 permissions:
   contents: read
@@ -144,13 +121,11 @@ jobs:
     if: needs.authorize.outputs.allowed == 'true'
     needs: [authorize, context]
     runs-on: ubuntu-latest
-    environment: release
     steps:
       - name: Run Sanity checks
-        uses: tetherto/oss-actions/.github/actions/sanity-checks@v1.1.0
+        uses: tetherto/oss-actions/.github/actions/sanity-checks@4c64bed91fc8eba3a201adb1495e61b4c1a2246d
         with:
           secret-token: ${{ secrets.GITHUB_TOKEN }}
-          npm-token: ${{ secrets.NPM_TOKEN }}
           pat-token: ${{ secrets.PAT_TOKEN }}
           run-integration: ${{ needs.context.outputs.run_verify == 'true' }}
           workdir: ${{ github.workspace }}/packages/qvac-lib-infer-parakeet
@@ -159,13 +134,11 @@ jobs:
     needs: context
     if: needs.context.outputs.run_verify == 'true' || github.event_name == 'workflow_dispatch'
     uses: tetherto/oss-actions/.github/workflows/cpp-lint.yaml@v1.1.0
-    secrets:
-      NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
-      PAT_TOKEN: ${{ secrets.PAT_TOKEN }}
+    secrets: inherit
     with:
       sha: ${{ needs.context.outputs.base_sha }}
       pr_head_sha: ${{ needs.context.outputs.head_sha }}
-      workdir: ${{ github.workspace }}/packages/qvac-lib-infer-parakeet
+      workdir: packages/qvac-lib-infer-parakeet
 
   cpp-tests-coverage:
     permissions:
@@ -178,9 +151,7 @@ jobs:
     needs: context
     if: needs.context.outputs.run_verify == 'true' || github.event_name == 'workflow_dispatch'
     uses: ./.github/workflows/cpp-test-coverage-qvac-lib-infer-parakeet.yml
-    secrets:
-      NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
-      PAT_TOKEN: ${{ secrets.PAT_TOKEN }}
+    secrets: inherit
     with:
       repository: ${{ needs.context.outputs.repository }}
       ref: ${{ needs.context.outputs.ref }}
@@ -194,11 +165,7 @@ jobs:
     needs: context
     if: needs.context.outputs.run_verify == 'true' || github.event_name == 'workflow_dispatch'
     uses: ./.github/workflows/prebuilds-qvac-lib-infer-parakeet.yml
-    secrets:
-      NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
-      PAT_TOKEN: ${{ secrets.PAT_TOKEN }}
-      AWS_OIDC_ROLE_ARN: ${{ secrets.AWS_OIDC_ROLE_ARN }}
-      MODEL_S3_BUCKET: ${{ secrets.MODEL_S3_BUCKET }}
+    secrets: inherit
     with:
       repository: ${{ needs.context.outputs.repository }}
       ref: ${{ needs.context.outputs.ref }}
@@ -211,9 +178,7 @@ jobs:
     needs: [context, prebuild]
     if: needs.context.outputs.run_verify == 'true' || github.event_name == 'workflow_dispatch'
     uses: ./.github/workflows/integration-test-qvac-lib-infer-parakeet.yml
-    secrets:
-      NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
-      PAT_TOKEN: ${{ secrets.PAT_TOKEN }}
+    secrets: inherit
     with:
       repository: ${{ needs.context.outputs.repository }}
       ref: ${{ needs.context.outputs.ref }}
@@ -227,17 +192,7 @@ jobs:
     needs: [context, prebuild]
     if: needs.context.outputs.run_verify == 'true' || github.event_name == 'workflow_dispatch'
     uses: ./.github/workflows/integration-mobile-test-qvac-lib-infer-parakeet.yml
-    secrets:
-      NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
-      PAT_TOKEN: ${{ secrets.PAT_TOKEN }}
-      AWS_OIDC_ROLE_ARN: ${{ secrets.AWS_OIDC_ROLE_ARN }}
-      AWS_DEVICE_FARM_PROJECT_ARN_PARAKEET: ${{ secrets.AWS_DEVICE_FARM_PROJECT_ARN_PARAKEET }}
-      IOS_DEVICE_POOL_ARN_PARAKEET: ${{ secrets.IOS_DEVICE_POOL_ARN_PARAKEET }}
-      TEST_APP_APPLE_DISTRIBUTION_CERTIFICATE: ${{ secrets.TEST_APP_APPLE_DISTRIBUTION_CERTIFICATE }}
-      TEST_APP_APPLE_PROVISIONING_PROFILE: ${{ secrets.TEST_APP_APPLE_PROVISIONING_PROFILE }}
-      APPLE_P12_PASSWORD: ${{ secrets.APPLE_P12_PASSWORD }}
-      APPLE_KEYCHAIN_PASSWORD: ${{ secrets.APPLE_KEYCHAIN_PASSWORD }}
-      APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+    secrets: inherit
     with:
       repository: ${{ needs.context.outputs.repository }}
       ref: ${{ needs.context.outputs.ref }}

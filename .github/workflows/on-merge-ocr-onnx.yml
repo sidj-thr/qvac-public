@@ -121,11 +121,7 @@ jobs:
       pull-requests: write
       id-token: write
     uses: ./.github/workflows/prebuilds-ocr-onnx.yml
-    secrets:
-      NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
-      PAT_TOKEN: ${{ secrets.PAT_TOKEN }}
-      AWS_OIDC_ROLE_ARN: ${{ secrets.AWS_OIDC_ROLE_ARN }}
-      MODEL_S3_BUCKET: ${{ secrets.MODEL_S3_BUCKET }}
+    secrets: inherit
 
   publish-gpr:
     needs: [build, publish-logic]
@@ -195,7 +191,7 @@ jobs:
 
       - name: Publish to NPM Package Registry
         id: publish
-        uses: tetherto/oss-actions/.github/actions/publish-library-to-npm@v1.1.0
+        uses: ./.github/actions/publish-library-to-npm
         with:
           secret-token: ${{ secrets.NPM_TOKEN }}
           tag: "latest"
@@ -248,12 +244,7 @@ jobs:
     uses: ./.github/workflows/integration-test-ocr-onnx.yml
     needs: post-build-gate
     if: needs.post-build-gate.outputs.should_run_tests == 'true'
-    secrets:
-      NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
-      PAT_TOKEN: ${{ secrets.PAT_TOKEN }}
-      AWS_OIDC_ROLE_ARN: ${{ secrets.AWS_OIDC_ROLE_ARN }}
-      MODEL_S3_BUCKET: ${{ secrets.MODEL_S3_BUCKET }}
-      QASE_API_TOKEN: ${{ secrets.QASE_API_TOKEN }}
+    secrets: inherit
     with:
       repository: ${{ github.repository }}
       ref: ${{ github.sha }}

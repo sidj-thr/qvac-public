@@ -13,13 +13,6 @@ on:
         type: string
         required: false
         default: "packages/qvac-lib-decoder-audio"
-    secrets:
-      NPM_TOKEN:
-        required: true
-      PAT_TOKEN:
-        required: true
-      QASE_API_TOKEN:
-        required: true
 
 jobs:
   run-integration-tests:

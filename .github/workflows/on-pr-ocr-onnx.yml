@@ -17,33 +17,6 @@ on:
       - ".github/workflows/*ocr*.yml"
   workflow_dispatch:
   workflow_call:
-    secrets:
-      NPM_TOKEN:
-        required: true
-      PAT_TOKEN:
-        required: true
-      AWS_OIDC_ROLE_ARN:
-        required: false
-      MODEL_S3_BUCKET:
-        required: false
-      QASE_API_TOKEN:
-        required: false
-      AWS_DEVICE_FARM_PROJECT_ARN_OCR_FASTTEXT:
-        required: false
-      ANDROID_DEVICE_POOL_ARN_OCR_FASTTEXT:
-        required: false
-      IOS_DEVICE_POOL_ARN_OCR_FASTTEXT:
-        required: false
-      TEST_APP_APPLE_DISTRIBUTION_CERTIFICATE:
-        required: false
-      TEST_APP_APPLE_PROVISIONING_PROFILE:
-        required: false
-      APPLE_P12_PASSWORD:
-        required: false
-      APPLE_KEYCHAIN_PASSWORD:
-        required: false
-      APPLE_TEAM_ID:
-        required: false
 
 permissions:
   contents: read
@@ -150,11 +123,9 @@ jobs:
       - name: Run JavaScript tests
         id: run_js_tests
         continue-on-error: true
-        uses: tetherto/oss-actions/.github/actions/run-lint-and-unit-tests@v1.1.0
+        uses: tetherto/oss-actions/.github/actions/run-lint-and-unit-tests@4c64bed91fc8eba3a201adb1495e61b4c1a2246d
         with:
-          npm-token: ${{ secrets.NPM_TOKEN }}
           gpr-token: ${{ secrets.GITHUB_TOKEN }}
-          pat-token: ${{ secrets.GITHUB_TOKEN }}
           registry-type: gpr
           workdir: ${{ env.PKG_DIR }}
 
@@ -190,9 +161,7 @@ jobs:
     needs: [authorize, changes]
     if: needs.authorize.outputs.allowed == 'true' || github.event_name == 'workflow_dispatch'
     uses: tetherto/oss-actions/.github/workflows/cpp-lint.yaml@v1.1.0
-    secrets:
-      NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
-      PAT_TOKEN: ${{ secrets.PAT_TOKEN }}
+    secrets: inherit
     with:
       sha: ${{ github.event.pull_request.base.sha || github.sha }}
       pr_head_sha: ${{ github.event.pull_request.head.sha }}
@@ -212,11 +181,7 @@ jobs:
         needs.authorize.outputs.allowed == 'true'
       )
     uses: ./.github/workflows/prebuilds-ocr-onnx.yml
-    secrets:
-      NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
-      PAT_TOKEN: ${{ secrets.PAT_TOKEN }}
-      AWS_OIDC_ROLE_ARN: ${{ secrets.AWS_OIDC_ROLE_ARN }}
-      MODEL_S3_BUCKET: ${{ secrets.MODEL_S3_BUCKET }}
+    secrets: inherit
     with:
       repository: ${{ github.event.pull_request.head.repo.full_name || github.repository }}
       ref: ${{ github.event.pull_request.head.ref || github.ref }}
@@ -234,12 +199,7 @@ jobs:
         needs.authorize.outputs.allowed == 'true'
       )
     uses: ./.github/workflows/integration-test-ocr-onnx.yml
-    secrets:
-      NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
-      PAT_TOKEN: ${{ secrets.PAT_TOKEN }}
-      AWS_OIDC_ROLE_ARN: ${{ secrets.AWS_OIDC_ROLE_ARN }}
-      MODEL_S3_BUCKET: ${{ secrets.MODEL_S3_BUCKET }}
-      QASE_API_TOKEN: ${{ secrets.QASE_API_TOKEN }}
+    secrets: inherit
     with:
       repository: ${{ github.event.pull_request.head.repo.full_name || github.repository }}
       ref: ${{ github.event.pull_request.head.ref || github.ref }}
@@ -258,19 +218,7 @@ jobs:
         needs.authorize.outputs.allowed == 'true'
       )
     uses: ./.github/workflows/integration-mobile-test-ocr-onnx.yml
-    secrets:
-      NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
-      PAT_TOKEN: ${{ secrets.PAT_TOKEN }}
-      AWS_OIDC_ROLE_ARN: ${{ secrets.AWS_OIDC_ROLE_ARN }}
-      MODEL_S3_BUCKET: ${{ secrets.MODEL_S3_BUCKET }}
-      AWS_DEVICE_FARM_PROJECT_ARN_OCR_FASTTEXT: ${{ secrets.AWS_DEVICE_FARM_PROJECT_ARN_OCR_FASTTEXT }}
-      ANDROID_DEVICE_POOL_ARN_OCR_FASTTEXT: ${{ secrets.ANDROID_DEVICE_POOL_ARN_OCR_FASTTEXT }}
-      IOS_DEVICE_POOL_ARN_OCR_FASTTEXT: ${{ secrets.IOS_DEVICE_POOL_ARN_OCR_FASTTEXT }}
-      TEST_APP_APPLE_DISTRIBUTION_CERTIFICATE: ${{ secrets.TEST_APP_APPLE_DISTRIBUTION_CERTIFICATE }}
-      TEST_APP_APPLE_PROVISIONING_PROFILE: ${{ secrets.TEST_APP_APPLE_PROVISIONING_PROFILE }}
-      APPLE_P12_PASSWORD: ${{ secrets.APPLE_P12_PASSWORD }}
-      APPLE_KEYCHAIN_PASSWORD: ${{ secrets.APPLE_KEYCHAIN_PASSWORD }}
-      APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+    secrets: inherit
     with:
       repository: ${{ github.event.pull_request.head.repo.full_name || github.repository }}
       ref: ${{ github.event.pull_request.head.ref || github.ref }}
