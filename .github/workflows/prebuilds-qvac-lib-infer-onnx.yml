@@ -22,7 +22,10 @@ on:
     secrets:
       PAT_TOKEN:
         required: true
-
+      AWS_OIDC_ROLE_ARN:
+        required: true
+      MODEL_S3_BUCKET:
+        required: true
 env:
   PKG_DIR: packages/qvac-lib-infer-onnx
 
