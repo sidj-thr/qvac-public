@@ -34,9 +34,9 @@ on:
       PAT_TOKEN:
         required: true
       AWS_OIDC_ROLE_ARN:
-        required: false
+        required: true
       MODEL_S3_BUCKET:
-        required: false
+        required: true
 
 permissions:
   contents: read
