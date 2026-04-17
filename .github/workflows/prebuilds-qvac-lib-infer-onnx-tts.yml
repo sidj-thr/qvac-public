@@ -27,8 +27,6 @@ on:
         required: false
         default: "packages/qvac-lib-infer-onnx-tts"
     secrets:
-      NPM_TOKEN:
-        required: true
       PAT_TOKEN:
         required: true
       AWS_OIDC_ROLE_ARN:

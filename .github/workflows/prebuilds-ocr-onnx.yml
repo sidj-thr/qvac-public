@@ -20,8 +20,6 @@ on:
         required: false
         default: "on-onnx-ocr"
     secrets:
-      NPM_TOKEN:
-        required: true
       PAT_TOKEN:
         required: true
       AWS_OIDC_ROLE_ARN:
