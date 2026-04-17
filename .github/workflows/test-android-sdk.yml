@@ -56,9 +56,9 @@ on:
       MQTT_PASSWORD:
         required: true
       MQTT_CA_CERT:
-        required: false
+        required: true
       AWS_OIDC_ROLE_ARN:
-        required: false
+        required: true
 
 permissions:
   id-token: write

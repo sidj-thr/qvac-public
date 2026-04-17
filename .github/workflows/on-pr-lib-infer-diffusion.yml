@@ -24,27 +24,27 @@ on:
       PAT_TOKEN:
         required: true
       AWS_OIDC_ROLE_ARN:
-        required: false
+        required: true
       MODEL_S3_BUCKET:
-        required: false
+        required: true
       QASE_API_TOKEN:
-        required: false
+        required: true
       LLM_AWS_DEVICE_FARM_PROJECT_ARN:
-        required: false
+        required: true
       LLM_ANDROID_DEVICE_POOL_ARN:
-        required: false
+        required: true
       LLM_IOS_DEVICE_POOL_ARN:
-        required: false
+        required: true
       TEST_APP_APPLE_DISTRIBUTION_CERTIFICATE:
-        required: false
+        required: true
       TEST_APP_APPLE_PROVISIONING_PROFILE:
-        required: false
+        required: true
       APPLE_P12_PASSWORD:
-        required: false
+        required: true
       APPLE_KEYCHAIN_PASSWORD:
-        required: false
+        required: true
       APPLE_TEAM_ID:
-        required: false
+        required: true
 
 permissions:
   contents: read
