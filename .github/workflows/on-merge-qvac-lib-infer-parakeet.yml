@@ -213,8 +213,6 @@ jobs:
         with:
           tag: "latest"
           workdir: packages/qvac-lib-infer-parakeet
-          repo_name: "parakeet"
-          git-token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Capture published version
         id: capture_version

@@ -187,9 +187,6 @@ jobs:
         with:
           tag: "latest"
           workdir: packages/qvac-lib-infer-llamacpp-embed
-          repo_name: "llamacpp-embed"
-          git-token: ${{ secrets.GITHUB_TOKEN }}
-          create-tag: "false"
 
   # Create GitHub release only for actual releases (after NPM publish)
   publish-release:

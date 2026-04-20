@@ -181,8 +181,6 @@ jobs:
         uses: ./.github/actions/publish-library-to-npm
         with:
           tag: "latest"
-          git-token: ${{ secrets.GITHUB_TOKEN }}
-          repo_name: cli
           workdir: ${{ env.WORKDIR }}
 
   publish-release:

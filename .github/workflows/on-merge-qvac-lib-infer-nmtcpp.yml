@@ -194,8 +194,6 @@ jobs:
         with:
           tag: "latest"
           workdir: ${{ env.PKG_DIR }}
-          repo_name: "translation-nmtcpp"
-          git-token: ${{ secrets.GITHUB_TOKEN }}
 
   publish-release:
     needs: [publish-npm]

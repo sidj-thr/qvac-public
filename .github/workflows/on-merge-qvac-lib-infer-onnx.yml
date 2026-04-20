@@ -188,8 +188,6 @@ jobs:
         with:
           tag: "latest"
           workdir: packages/qvac-lib-infer-onnx
-          repo_name: "onnx"
-          git-token: ${{ secrets.GITHUB_TOKEN }}
 
   publish-release:
     needs: [publish-npm]
