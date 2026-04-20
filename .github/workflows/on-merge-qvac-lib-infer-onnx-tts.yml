@@ -185,8 +185,6 @@ jobs:
         with:
           tag: "latest"
           path: ${{ env.WORKDIR }}
-          repo_name: "onnx-tts"
-          git-token: ${{ secrets.PAT_TOKEN }}
 
       - name: Capture published version
         id: capture_version
