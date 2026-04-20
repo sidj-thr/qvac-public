@@ -20,6 +20,7 @@ jobs:
     outputs:
       number: ${{ steps.pr.outputs.number }}
       sha: ${{ steps.pr.outputs.sha }}
+      is_fork: ${{ steps.pr.outputs.is_fork }}
 
     steps:
       - name: Get latest PR head SHA
@@ -40,6 +41,12 @@ jobs:
             });
             core.setOutput('number', String(prNumber));
             core.setOutput('sha', pr.head.sha);
+            
+            // Detect if PR originates from a fork
+            const baseFullName = `${context.repo.owner}/${context.repo.repo}`;
+            const isFork = pr.head.repo?.full_name !== baseFullName;
+            core.info(`PR #${prNumber} is_fork=${isFork}`); // debug log
+            core.setOutput('is_fork', String(isFork));
 
   check-approvals:
     needs: run-when-command
