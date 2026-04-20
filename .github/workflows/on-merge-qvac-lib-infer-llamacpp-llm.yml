@@ -220,8 +220,6 @@ jobs:
         with:
           tag: "latest"
           workdir: packages/qvac-lib-infer-llamacpp-llm
-          repo_name: "llamacpp-llm"
-          git-token: ${{ secrets.GITHUB_TOKEN }}
 
   # Create GitHub release only for actual releases (after NPM publish)
   publish-release:
