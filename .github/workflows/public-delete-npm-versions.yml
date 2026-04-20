@@ -36,19 +36,6 @@ on:
 run-name: Delete NPM Versions ${{ inputs.version }} ${{ inputs.pr-number }} ${{ inputs.dry-run }}
 
 jobs:
-  print-context-delete-npm-versions:
-    runs-on: ubuntu-latest
-    continue-on-error: true
-    steps:
-      - run: |
-          echo "Inputs Context: $INPUTS_CONTEXT"
-        env:
-          INPUTS_CONTEXT: ${{ toJSON(inputs) }}
-      - run: |
-          echo "GitHub Context: $GITHUB_CONTEXT"
-        env:
-          GITHUB_CONTEXT: ${{ toJSON(github) }}
-
   delete-npm-versions:
     runs-on: ubuntu-latest
     environment: release

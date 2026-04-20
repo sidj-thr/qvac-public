@@ -47,16 +47,6 @@ jobs:
       contents: read
       packages: read
     steps:
-      - name: Log Trigger Event and Contexts
-        env:
-          GITHUB_CONTEXT: ${{ toJSON(github) }}
-          INPUTS_CONTEXT: ${{ toJSON(inputs) }}
-          WORKDIR: ${{ inputs.workdir }}
-        run: |
-          echo "workdir: $WORKDIR"
-          echo "Inputs Context: $INPUTS_CONTEXT"
-          echo "Full GitHub Context: $GITHUB_CONTEXT"
-
       - name: Check tests status
         run: |
           failed=0
