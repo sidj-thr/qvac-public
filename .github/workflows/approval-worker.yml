@@ -47,13 +47,20 @@ jobs:
     if: github.event_name == 'pull_request_review' && github.event.pull_request.head.repo.fork == true
     steps:
       - name: Add comment on PR
-        uses: peter-evans/create-or-update-comment@e8674b075228eee787fea43ef493e45ece1004c9 # 5.0.0
+        uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # 8.0.0
         with:
-          issue-number: ${{ needs.run-when-command.outputs.number }}
-          body: |
-            ⚠️ **Warning:** This PR originates from a fork.
-
-            _Please write a comment on the PR for this to work properly for fork repo PRs._
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: ${{ needs.run-when-command.outputs.number }},
+              body: [
+                '⚠️ **Warning:** This PR originates from a fork.',
+                '',
+                '_Please write a comment on the PR for this to work properly for fork repo PRs._'
+              ].join('\n'),
+            });
 
   check-approvals:
     if: ${{ !(github.event_name == 'pull_request_review' && github.event.pull_request.head.repo.fork == true) }}
