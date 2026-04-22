@@ -41,14 +41,23 @@ jobs:
             });
             core.setOutput('number', String(prNumber));
             core.setOutput('sha', pr.head.sha);
-            
-            // Detect if PR originates from a fork
-            const baseFullName = `${context.repo.owner}/${context.repo.repo}`;
-            const isFork = pr.head.repo?.full_name !== baseFullName;
-            core.info(`PR #${prNumber} is_fork=${isFork}`); // debug log
-            core.setOutput('is_fork', String(isFork));
+
+  add-comment:
+    runs-on: ubuntu-latest
+    needs: run-when-command
+    if: github.event_name == 'pull_request_review' && github.event.pull_request.head.repo.fork == true
+    steps:
+      - name: Add comment on PR
+        uses: peter-evans/create-or-update-comment@e8674b075228eee787fea43ef493e45ece1004c9 # 5.0.0
+        with:
+          issue-number: ${{ needs.run-when-command.outputs.number }}
+          body: |
+            ⚠️ **Warning:** This PR originates from a fork.
+
+            _Please write a comment on the PR for this to work properly for fork repo PRs._
 
   check-approvals:
+    if: ${{ !(github.event_name == 'pull_request_review' && github.event.pull_request.head.repo.fork == true) }}
     needs: run-when-command
     permissions:
       contents: write
