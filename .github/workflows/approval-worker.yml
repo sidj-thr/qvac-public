@@ -20,7 +20,6 @@ jobs:
     outputs:
       number: ${{ steps.pr.outputs.number }}
       sha: ${{ steps.pr.outputs.sha }}
-      is_fork: ${{ steps.pr.outputs.is_fork }}
 
     steps:
       - name: Get latest PR head SHA
