@@ -42,6 +42,10 @@ jobs:
             core.setOutput('sha', pr.head.sha);
 
   add-comment:
+    permissions:
+      contents: read
+      pull-requests: write
+      issues: write
     runs-on: ubuntu-latest
     needs: run-when-command
     if: github.event_name == 'pull_request_review' && github.event.pull_request.head.repo.fork == true
@@ -56,11 +60,13 @@ jobs:
               repo: context.repo.repo,
               issue_number: ${{ needs.run-when-command.outputs.number }},
               body: [
-                '⚠️ **Warning:** This PR originates from a fork.',
-                '',
-                '_Please write a comment on the PR for approval worker to work properly for fork repo PRs._'
+                '> [!WARNING]',
+                '> This pull request originates from a **fork**, in order to run please write a comment on the PR, which will trigger the `issue_comment` event.',
+                '>',
+                '> If the worker runs successfully, it will allow the merge.',
               ].join('\n'),
             });
+            core.setFailed('Fork PR detected on pull_request_review event - required status check failed on purpose.');
 
   check-approvals:
     if: ${{ !(github.event_name == 'pull_request_review' && github.event.pull_request.head.repo.fork == true) }}
