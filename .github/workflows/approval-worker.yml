@@ -58,7 +58,7 @@ jobs:
               body: [
                 '⚠️ **Warning:** This PR originates from a fork.',
                 '',
-                '_Please write a comment on the PR for this to work properly for fork repo PRs._'
+                '_Please write a comment on the PR for approval worker to work properly for fork repo PRs._'
               ].join('\n'),
             });
 
