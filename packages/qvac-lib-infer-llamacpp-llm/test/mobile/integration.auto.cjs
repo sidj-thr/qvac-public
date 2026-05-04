@@ -51,6 +51,11 @@ async function runGenerationParamsTest (options = {}) { // eslint-disable-line n
   return runIntegrationModule('../integration/generation-params.test.js', options)
 }
 
+async function runGrammarTest (options = {}) { // eslint-disable-line no-unused-vars
+  if (typeof __shouldRunTest === 'function' && !__shouldRunTest('runGrammarTest')) return __FILTERED
+  return runIntegrationModule('../integration/grammar.test.js', options)
+}
+
 async function runImageTest (options = {}) { // eslint-disable-line no-unused-vars
   if (typeof __shouldRunTest === 'function' && !__shouldRunTest('runImageTest')) return __FILTERED
   return runIntegrationModule('../integration/image.test.js', options)
@@ -64,6 +69,11 @@ async function runModelLoadingTest (options = {}) { // eslint-disable-line no-un
 async function runMoeTest (options = {}) { // eslint-disable-line no-unused-vars
   if (typeof __shouldRunTest === 'function' && !__shouldRunTest('runMoeTest')) return __FILTERED
   return runIntegrationModule('../integration/moe.test.js', options)
+}
+
+async function runMultiGpuTest (options = {}) { // eslint-disable-line no-unused-vars
+  if (typeof __shouldRunTest === 'function' && !__shouldRunTest('runMultiGpuTest')) return __FILTERED
+  return runIntegrationModule('../integration/multi-gpu.test.js', options)
 }
 
 async function runMultiInstanceTest (options = {}) { // eslint-disable-line no-unused-vars

@@ -17,8 +17,10 @@
     ],
     "lightB": [
       "runGenerationParamsTest",
+      "runGrammarTest",
       "runModelLoadingTest",
       "runMoeTest",
+      "runMultiGpuTest",
       "runMultiInstanceTest",
       "runUtf8OutputTest"
     ]
@@ -34,11 +36,13 @@
       "runToolsCompactTest",
       "runFinetuningPauseResumeTest",
       "runGenerationParamsTest",
+      "runGrammarTest",
       "runImageTest"
     ],
     "groupB": [
       "runModelLoadingTest",
       "runMoeTest",
+      "runMultiGpuTest",
       "runMultiInstanceTest",
       "runOcrLightonTest",
       "runReasoningTest",

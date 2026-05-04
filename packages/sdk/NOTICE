@@ -83,46 +83,6 @@ Third-Party Model Licenses
     https://huggingface.co/personalizedrefrigerator/whisper-base-fr
   fr-tiny-ggml-model-f16
     https://huggingface.co/JaepaX/whisper-tiny-fr
-  ggml-opus-ar-en
-    https://huggingface.co/Helsinki-NLP/opus-mt-ar-en
-  ggml-opus-de-en
-    https://huggingface.co/Helsinki-NLP/opus-mt-de-en
-  ggml-opus-de-fr
-    https://huggingface.co/Helsinki-NLP/opus-mt-de-fr
-  ggml-opus-en-ar
-    https://huggingface.co/Helsinki-NLP/opus-mt-en-ar
-  ggml-opus-en-es
-    https://huggingface.co/Helsinki-NLP/opus-mt-en-es
-  ggml-opus-en-fr
-    https://huggingface.co/Helsinki-NLP/opus-mt-en-fr
-  ggml-opus-en-it
-    https://huggingface.co/Helsinki-NLP/opus-mt-en-it
-  ggml-opus-en-roa
-    https://huggingface.co/Helsinki-NLP/opus-mt-en-roa
-  ggml-opus-en-ru
-    https://huggingface.co/Helsinki-NLP/opus-mt-en-ru
-  ggml-opus-en-zh
-    https://huggingface.co/Helsinki-NLP/opus-mt-en-zh
-  ggml-opus-es-en
-    https://huggingface.co/Helsinki-NLP/opus-mt-es-en
-  ggml-opus-es-fr
-    https://huggingface.co/Helsinki-NLP/opus-mt-es-fr
-  ggml-opus-fr-de
-    https://huggingface.co/Helsinki-NLP/opus-mt-fr-de
-  ggml-opus-fr-en
-    https://huggingface.co/Helsinki-NLP/opus-mt-fr-en
-  ggml-opus-fr-es
-    https://huggingface.co/Helsinki-NLP/opus-mt-fr-es
-  ggml-opus-it-en
-    https://huggingface.co/Helsinki-NLP/opus-mt-it-en
-  ggml-opus-ja-en
-    https://huggingface.co/Helsinki-NLP/opus-mt-ja-en
-  ggml-opus-mt-en-roa-f16
-    https://huggingface.co/Helsinki-NLP/opus-mt-en-roa
-  ggml-opus-mt-roa-en-f16
-    https://huggingface.co/Helsinki-NLP/opus-mt-roa-en
-  ggml-opus-roa-en
-    https://huggingface.co/Helsinki-NLP/opus-mt-roa-en
   gpt-oss-120b-Q4_K_M-00001-of-00002
     https://huggingface.co/unsloth/gpt-oss-120b-GGUF
   gpt-oss-20b-GGUF
@@ -216,14 +176,6 @@ Third-Party Model Licenses
     https://huggingface.co/nasedkinpv/parakeet-tdt-0.6b-v3-onnx-int8
   encoder-model
     https://huggingface.co/istupakov/parakeet-tdt-0.6b-v3-onnx
-  ggml-opus-en-de
-    https://huggingface.co/Helsinki-NLP/opus-mt-en-de
-  ggml-opus-en-pt
-    https://huggingface.co/Helsinki-NLP/opus-mt-tc-big-en-pt
-  ggml-opus-ru-en
-    https://huggingface.co/Helsinki-NLP/opus-mt-ru-en
-  ggml-opus-zh-en
-    https://huggingface.co/Helsinki-NLP/opus-mt-zh-en
   parakeet-ctc-0.6b-ONNX
     https://huggingface.co/onnx-community/parakeet-ctc-0.6b-ONNX
   parakeet-rs
@@ -376,7 +328,7 @@ Third-Party Model Licenses
   model.enis.intgemm.alphas
     https://github.com/mozilla/firefox-translations-models/tree/main/models/base-memory/enis
   model.enit.intgemm.alphas
-    https://github.com/mozilla/firefox-translations-models/tree/main/models/tiny/enit
+    https://github.com/mozilla/firefox-translations-models/tree/main/models/base-memory/enit
   model.enja.intgemm.alphas
     https://github.com/mozilla/firefox-translations-models/tree/main/models/base-memory/enja
   model.enkn.intgemm.alphas
@@ -420,7 +372,7 @@ Third-Party Model Licenses
   model.enzh.intgemm.alphas
     https://github.com/mozilla/firefox-translations-models/tree/main/models/base-memory/enzh
   model.esen.intgemm.alphas
-    https://github.com/mozilla/firefox-translations-models/tree/main/models/tiny/esen
+    https://github.com/mozilla/firefox-translations-models/tree/main/models/base-memory/esen
   model.eten.intgemm.alphas
     https://github.com/mozilla/firefox-translations-models/tree/main/models/base-memory/eten
   model.faen.intgemm.alphas
@@ -542,26 +494,21 @@ JavaScript Dependencies
   @qvac/decoder-audio@0.3.7
     https://github.com/tetherto/qvac
   @qvac/diagnostics@0.1.1
-  @qvac/diffusion-cpp@0.1.3
+  @qvac/diffusion-cpp@0.3.0
     https://github.com/tetherto/qvac
-  @qvac/dl-base@0.2.1
-    https://github.com/tetherto/qvac
-  @qvac/dl-filesystem@0.2.1
-    https://github.com/tetherto/qvac
-  @qvac/dl-hyperdrive@0.2.1
-    https://github.com/tetherto/qvac
-  @qvac/embed-llamacpp@0.13.4
+  @qvac/dl-base@0.1.1
+  @qvac/dl-hyperdrive@0.1.1
+  @qvac/embed-llamacpp@0.14.0
     https://github.com/tetherto/qvac
   @qvac/error@0.1.1
   @qvac/infer-base@0.1.1
-  @qvac/infer-base@0.2.2
-  @qvac/infer-base@0.3.1
-    https://github.com/tetherto/qvac
   @qvac/infer-base@0.4.0
+    https://github.com/tetherto/qvac
+  @qvac/infer-base@0.4.1
     https://github.com/tetherto/qvac
   @qvac/langdetect-text@0.1.2
     https://github.com/tetherto/qvac
-  @qvac/llm-llamacpp@0.14.4
+  @qvac/llm-llamacpp@0.17.3
     https://github.com/tetherto/qvac
   @qvac/logging@0.1.0
   @qvac/ocr-onnx@0.4.2
@@ -570,7 +517,7 @@ JavaScript Dependencies
     https://github.com/tetherto/qvac
   @qvac/rag@0.4.4
     https://github.com/tetherto/qvac
-  @qvac/registry-client@0.4.0
+  @qvac/registry-client@0.4.1
     https://github.com/tetherto/qvac
   @qvac/registry-schema@0.1.2
   @qvac/response@0.1.2
@@ -578,9 +525,9 @@ JavaScript Dependencies
     https://github.com/tetherto/qvac
   @qvac/transcription-whispercpp@0.6.1
     https://github.com/tetherto/qvac
-  @qvac/translation-nmtcpp@0.6.10
-    https://github.com/tetherto/qvac-lib-infer-nmtcpp
-  @qvac/tts-onnx@0.8.2
+  @qvac/translation-nmtcpp@2.1.0
+    https://github.com/tetherto/qvac
+  @qvac/tts-onnx@0.8.5
     https://github.com/tetherto/qvac
   adaptive-timeout@1.0.1
     https://github.com/holepunchto/adaptive-timeout
@@ -630,9 +577,9 @@ JavaScript Dependencies
     https://github.com/holepunchto/bare-https
   bare-inspect@3.1.4
     https://github.com/holepunchto/bare-inspect
-  bare-lief@0.1.6
+  bare-lief@0.2.3
     https://github.com/holepunchto/bare-lief
-  bare-link@2.1.10
+  bare-link@3.2.1
     https://github.com/holepunchto/bare-link
   bare-module@6.1.3
     https://github.com/holepunchto/bare-module

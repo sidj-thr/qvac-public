@@ -664,13 +664,17 @@ function createPerformanceCollector () {
  *
  * @param {string} label - Test label prefix (e.g., '[Bergamot]')
  * @param {Object} metrics - Metrics object from createPerformanceCollector().getMetrics()
- * @param {Object} [qualityOpts] - Optional translation-quality context
- * @param {string} [qualityOpts.fixturePath] - Path to the ground-truth fixture JSON
- * @param {string} [qualityOpts.srcLang]     - Source language code (matches fixture entry)
- * @param {string} [qualityOpts.dstLang]     - Destination language code (matches fixture entry)
+ * @param {Object} [opts] - Optional reporter extras
+ * @param {string} [opts.fixturePath] - Path to the ground-truth fixture JSON (enables chrF++ scoring)
+ * @param {string} [opts.srcLang]     - Source language code (matches fixture entry)
+ * @param {string} [opts.dstLang]     - Destination language code (matches fixture entry)
+ * @param {string} [opts.execution_provider] - Runtime backend tag (e.g. 'Vulkan0', 'OpenCL', 'Metal').
+ *                                             If omitted, falls back to regex-parsing the label for
+ *                                             '[GPU]' / '[CPU]' so call sites that don't know the
+ *                                             actual runtime backend still tag records sensibly.
  * @returns {string} Formatted performance metrics string
  */
-function formatPerformanceMetrics (label, metrics, qualityOpts) {
+function formatPerformanceMetrics (label, metrics, opts = {}) {
   const {
     totalTime,
     generatedTokens,
@@ -686,9 +690,9 @@ function formatPerformanceMetrics (label, metrics, qualityOpts) {
   const decodeTimeMs = typeof decodeTime === 'number' ? decodeTime : 0
 
   let quality = null
-  if (qualityOpts && qualityOpts.fixturePath && prompt && qualityOpts.srcLang && qualityOpts.dstLang) {
+  if (opts && opts.fixturePath && prompt && opts.srcLang && opts.dstLang) {
     try {
-      const gt = findTranslationGroundTruth(qualityOpts.fixturePath, prompt, qualityOpts.srcLang, qualityOpts.dstLang)
+      const gt = findTranslationGroundTruth(opts.fixturePath, prompt, opts.srcLang, opts.dstLang)
       if (gt) {
         quality = evaluateTranslationQuality(fullOutput || '', gt)
       }
@@ -697,7 +701,13 @@ function formatPerformanceMetrics (label, metrics, qualityOpts) {
     }
   }
 
-  const ep = /\[gpu\]/i.test(label) ? 'gpu' : /\[cpu\]/i.test(label) ? 'cpu' : null
+  // Prefer a caller-supplied execution_provider (the true runtime backend
+  // name, e.g. 'Vulkan0' / 'OpenCL') so perf-baselines keyed by EP stay
+  // accurate even when the test label says '[GPU]' but a silent CPU
+  // fallback happened. Fall back to regex-parsing the label so call sites
+  // that don't know the runtime backend still tag records sensibly.
+  const ep = opts.execution_provider ||
+    (/\[gpu\]/i.test(label) ? 'gpu' : /\[cpu\]/i.test(label) ? 'cpu' : null)
 
   _perfReporter.record(label, {
     total_time_ms: Math.round(totalTimeMs),
@@ -749,6 +759,143 @@ function formatPerformanceMetrics (label, metrics, qualityOpts) {
 }
 
 // ============================================================================
+// GPU Device Discovery
+// ============================================================================
+
+/**
+ * Backend names that indicate the addon did NOT bind a real GPU device at the
+ * requested index. Used both by `discoverGpuDevices()` to terminate probing
+ * and by `resolveExecutionProvider()` to mark a synthetic GPU test as a
+ * `cpu (fallback)` row when GGML couldn't load the requested backend.
+ *
+ * - `CPU` / `Unloaded` — addon-level sentinels emitted when no backend is
+ *   bound (e.g. before activate(), or when GGML loader fix isn't available
+ *   on the runner).
+ * - `Bergamot-CPU` — Bergamot models are intgemm-only and never expose a GPU
+ *   backend; this sentinel surfaces the architectural limitation.
+ * - `BLAS` — GGML's CPU-side matmul helper on macOS. Reports as a "device"
+ *   in enumeration but is conceptually CPU work, not a separate GPU.
+ */
+const CPU_SENTINEL_BACKENDS = new Set([
+  'CPU', 'Unloaded', 'Bergamot-CPU', 'BLAS'
+])
+
+/**
+ * Normalise an addon `getActiveBackendName()` result into the
+ * `execution_provider` tag recorded in perf-report.json.
+ *
+ * - Real GPU backend (e.g. `Metal`, `Vulkan0`, `OpenCL`) → lowercased,
+ *   trailing-digit-stripped tag (`metal`, `vulkan`, `opencl`) so per-EP
+ *   baselines stay stable across multi-GPU systems.
+ * - `useGpu === false` + any sentinel → `cpu` (so a `[CPU]` label never
+ *   reports `blas` in the EP column on macOS).
+ * - `useGpu === true` + sentinel → `cpu (fallback)` to make it obvious in
+ *   the Step Summary that the requested GPU backend wasn't available and
+ *   the test ran on CPU. Once Ian's loader fix lands per platform
+ *   (QVAC-17640 / QVAC-17880), the same row auto-flips to the real backend
+ *   tag without further CI work.
+ */
+function resolveExecutionProvider (backendName, useGpu) {
+  if (backendName && !CPU_SENTINEL_BACKENDS.has(backendName)) {
+    return backendName.toLowerCase().replace(/\s+/g, '-').replace(/\d+$/, '')
+  }
+  if (!useGpu) return 'cpu'
+  return 'cpu (fallback)'
+}
+
+/**
+ * Maximum GPU device indices to probe.  Covers multi-GPU desktops (e.g.
+ * Vulkan0 + Vulkan1) and mixed-backend mobile (Vulkan + OpenCL).  Probing
+ * stops early when a device index falls back to CPU, so the actual cost is
+ * O(N_real_devices + 1).
+ */
+const MAX_GPU_DEVICE_PROBES = 4
+
+/** @type {Promise<{ index: number, name: string }[]> | null} */
+let _gpuDevicePromise = null
+
+/**
+ * Discovers available GPU devices by probe-loading an IndicTrans model with
+ * increasing gpu_device indices.  Returns an array of { index, name } for
+ * each device that resolved to a non-CPU backend.
+ *
+ * Uses IndicTrans regardless of which test file calls it — ggml device
+ * enumeration is device-dependent, not model-dependent, so a single probe
+ * model suffices for all backends (Bergamot, pivot, etc.).
+ *
+ * Results are cached as a Promise so concurrent callers await the same probe
+ * run (avoids the race where a second caller sees an in-progress empty array).
+ *
+ * @returns {Promise<{ index: number, name: string }[]>}
+ */
+function discoverGpuDevices () {
+  if (_gpuDevicePromise !== null) return _gpuDevicePromise
+  _gpuDevicePromise = _probeGpuDevices()
+  return _gpuDevicePromise
+}
+
+const _logger = createLogger()
+
+async function _probeGpuDevices () {
+  const devices = []
+  const seenBackends = new Set()
+  const modelPath = await ensureIndicTransModel()
+  // Lazy require: utils.js is imported by test files that may not need the
+  // native addon (e.g. fixture-only helpers).  Loading it at module scope
+  // would force every consumer to load the addon unconditionally.
+  const TranslationNmtcpp = require('@qvac/translation-nmtcpp') // eslint-disable-line
+
+  for (let idx = 0; idx < MAX_GPU_DEVICE_PROBES; idx++) {
+    let model
+    try {
+      const config = {
+        modelType: TranslationNmtcpp.ModelTypes.IndicTrans,
+        use_gpu: true,
+        gpu_device: idx,
+        beamsize: 1
+      }
+      if (platform === 'android') {
+        const writableRoot = (typeof global !== 'undefined' && global.testDir) || '/tmp'
+        config.openclCacheDir = path.join(writableRoot, 'opencl-cache-discover')
+        try { fs.mkdirSync(config.openclCacheDir, { recursive: true }) } catch (_) {}
+      }
+      model = new TranslationNmtcpp({
+        files: { model: modelPath },
+        params: { mode: 'full', srcLang: 'eng_Latn', dstLang: 'hin_Deva' },
+        config,
+        logger: createLogger()
+      })
+      await model.load()
+      const name = model.getActiveBackendName()
+      await model.unload()
+
+      // CPU sentinels — the addon couldn't bind a real GPU backend at this
+      // index. BLAS is GGML's CPU-side matmul accelerator on macOS and is
+      // not a meaningful "GPU device" for our perf reports. Stop probing
+      // here so callers don't get redundant rows.
+      if (CPU_SENTINEL_BACKENDS.has(name)) {
+        break
+      }
+      // Dedupe by backend name so a single physical GPU returned at multiple
+      // indices (observed on Android where Vulkan0 came back four times)
+      // doesn't pollute the table with identical rows.
+      if (seenBackends.has(name)) {
+        break
+      }
+      seenBackends.add(name)
+      devices.push({ index: idx, name })
+    } catch (err) {
+      _logger.warn('[discoverGpuDevices] probe at gpu_device=' + idx +
+        ' failed: ' + (err && err.message ? err.message : String(err)))
+      if (model) { try { await model.unload() } catch (__) { /* noop */ } }
+      break
+    }
+  }
+
+  return devices
+}
+
+// ============================================================================
 // Module Exports
 // ============================================================================
 
@@ -767,5 +914,11 @@ module.exports = {
 
   // Performance metrics
   createPerformanceCollector,
-  formatPerformanceMetrics
+  formatPerformanceMetrics,
+
+  // GPU discovery
+  discoverGpuDevices,
+  MAX_GPU_DEVICE_PROBES,
+  CPU_SENTINEL_BACKENDS,
+  resolveExecutionProvider
 }
