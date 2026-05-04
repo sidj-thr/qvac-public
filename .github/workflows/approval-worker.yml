@@ -41,16 +41,14 @@ jobs:
             core.setOutput('number', String(prNumber));
             core.setOutput('sha', pr.head.sha);
 
-  fail-worker:
+  explain-fork-review-limitation:
     permissions:
       contents: read
-      pull-requests: write
-      issues: write
     runs-on: ubuntu-latest
     needs: run-when-command
     if: github.event_name == 'pull_request_review' && github.event.pull_request.head.repo.fork == true
     steps:
-      - name: Fail workflow if triggered by a fork and pull_request_review
+      - name: Explain why approval check is not run
         uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # 8.0.0
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
