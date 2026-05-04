@@ -41,7 +41,7 @@ jobs:
             core.setOutput('number', String(prNumber));
             core.setOutput('sha', pr.head.sha);
 
-  add-comment:
+  fail-worker:
     permissions:
       contents: read
       pull-requests: write
@@ -50,23 +50,12 @@ jobs:
     needs: run-when-command
     if: github.event_name == 'pull_request_review' && github.event.pull_request.head.repo.fork == true
     steps:
-      - name: Add comment on PR
+      - name: Fail workflow if triggered by a fork and pull_request_review
         uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # 8.0.0
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           script: |
-            await github.rest.issues.createComment({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              issue_number: ${{ needs.run-when-command.outputs.number }},
-              body: [
-                '> [!WARNING]',
-                '> This pull request originates from a **fork**, in order to run please write a comment on the PR, which will trigger the `issue_comment` event.',
-                '>',
-                '> If the worker runs successfully, it will allow the merge.',
-              ].join('\n'),
-            });
-            core.setFailed('Fork PR detected on pull_request_review event - required status check failed on purpose.');
+            core.setFailed('This action is triggered by a fork and pull_request_review - due to which failing the workflow. Please add a review comment to trigger this action properly');
 
   check-approvals:
     if: ${{ !(github.event_name == 'pull_request_review' && github.event.pull_request.head.repo.fork == true) }}
