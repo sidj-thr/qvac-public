@@ -56,7 +56,7 @@ jobs:
             core.setFailed('This action is triggered by a fork and pull_request_review - due to which failing the workflow. Please add a review comment to trigger this action properly');
 
   check-approvals:
-    needs: [run-when-command, check-prerequisites]
+    needs: check-prerequisites
     permissions:
       contents: write
       pull-requests: write
