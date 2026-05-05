@@ -51,9 +51,8 @@ jobs:
         if: github.event_name == 'pull_request_review' && github.event.pull_request.head.repo.fork == true
         uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # 8.0.0
         with:
-          github-token: ${{ secrets.GITHUB_TOKEN }}
           script: |
-            core.setFailed('This action is triggered by a fork and pull_request_review - due to which failing the workflow. Please add a review comment to trigger this action properly');
+            core.setFailed('This action is triggered by a fork repo PR and pull_request_review event - which is why the approval check worker fails. Please add a review comment on the PR to trigger this action properly');
 
   check-approvals:
     needs: check-prerequisites
